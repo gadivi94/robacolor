@@ -1,0 +1,24 @@
+{
+  "name": "robacolor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Robacolor: copia los colores de una foto de referencia a la tuya. App de iPhone (Capacitor + Codemagic).",
+  "scripts": {
+    "prepare-www": "node scripts/prepare-www.mjs",
+    "patch-native": "node scripts/patch-native.mjs"
+  },
+  "dependencies": {
+    "@capacitor-community/media": "^9.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/filesystem": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@capacitor/share": "^8.0.0",
+    "@fontsource-variable/bricolage-grotesque": "^5.0.0",
+    "@fontsource-variable/instrument-sans": "^5.0.0",
+    "@fontsource/dm-mono": "^5.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.0.0"
+  }
+}

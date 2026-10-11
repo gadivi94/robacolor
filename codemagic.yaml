@@ -1,0 +1,49 @@
+# Robacolor · app de iPhone (Capacitor), compilada en la nube con Codemagic y subida a TestFlight.
+# Pasos completos en README.md. Se lanza a mano desde codemagic.io (Start new build → «iOS (TestFlight)»).
+
+workflows:
+  ios:
+    name: iOS (TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: opos365_asc_admin   # la misma clave de App Store Connect que usas con opos365 y Radar de Plazas
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: cat.gadivi.robacolor
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Instalar dependencias
+        script: npm install
+      - name: Preparar la web de la app (www/)
+        script: node scripts/prepare-www.mjs
+      - name: Crear el proyecto iOS
+        script: npx cap add ios
+      - name: Icono y pantalla de inicio
+        script: npx capacitor-assets generate --ios --iconBackgroundColor '#1c1c1c' --splashBackgroundColor '#ebebeb' --splashBackgroundColorDark '#1e1e1e'
+      - name: Sincronizar y ajustar nombre, versión y permisos
+        script: |
+          npx cap sync ios
+          node scripts/patch-native.mjs
+      - name: Aplicar la firma
+        script: xcode-project use-profiles
+      - name: Compilar el IPA
+        script: |
+          set -o pipefail
+          if [ -d ios/App/App.xcworkspace ]; then T='--workspace ios/App/App.xcworkspace'; else T='--project ios/App/App.xcodeproj'; fi
+          if ! xcode-project build-ipa $T --scheme "App"; then
+            echo
+            echo "================ MOTIVO DEL ERROR (líneas con error del registro de xcodebuild) ================"
+            grep -h -E "error:|Provisioning profile|doesn't (include|support)|entitlement|No such module|Undefined symbol|Command .* failed|Signing for|is not valid|xcodebuild: error" /tmp/xcodebuild_logs/*.log 2>/dev/null | grep -v "warning:" | sort -u | head -80
+            echo "================================================================================================="
+            exit 1
+          fi
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false   # llega a TestFlight para pruebas internas sin revisión

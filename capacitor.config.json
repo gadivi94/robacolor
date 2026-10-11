@@ -1,0 +1,6 @@
+{
+  "appId": "cat.gadivi.robacolor",
+  "appName": "Robacolor",
+  "webDir": "www",
+  "ios": { "contentInset": "never", "scrollEnabled": true }
+}
