@@ -1,6 +1,6 @@
 node_modules/
-www/
-ios/
-android/
+/www/
+/ios/
+/android/
 *.log
 .DS_Store
