@@ -30,11 +30,10 @@
   async function escribirTemporal(blob, nombre) {
     var FS = plugin("Filesystem");
     if (!FS) throw new Error("Falta el plugin Filesystem");
-    var bytes = new Uint8Array(await blob.arrayBuffer());
     var TROZO = 3 * 256 * 1024; // múltiplo de 3: cada trozo es base64 válido por sí solo
     var ruta = "robacolor/" + nombre, uri = "";
-    for (var o = 0; o < bytes.length; o += TROZO) {
-      var datos = base64(bytes.subarray(o, Math.min(bytes.length, o + TROZO)));
+    for (var o = 0; o < blob.size; o += TROZO) { // se lee trozo a trozo: un vídeo 4K no cabe entero en memoria con holgura
+      var datos = base64(new Uint8Array(await blob.slice(o, o + TROZO).arrayBuffer()));
       if (o === 0) uri = (await FS.writeFile({ path: ruta, data: datos, directory: "CACHE", recursive: true })).uri;
       else await FS.appendFile({ path: ruta, data: datos, directory: "CACHE" });
     }

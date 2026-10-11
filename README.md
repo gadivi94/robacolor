@@ -45,7 +45,7 @@ Esto solo se puede comprobar en un iPhone real:
 - **Transporte:** reproducir, código de tiempo, barra de posición y marcas de **Entrada** y **Salida** para guardar solo un tramo.
 - **Monitores:** histograma, forma de onda, parade RGB y vectorscopio del resultado (también con fotos).
 - **Ruedas de color:** Lift, Gamma y Gain, cada una con su color y su nivel.
-- **Guardar:** reproduce el tramo con el look y graba lo que sale, con su sonido. Tarda lo que dura el tramo; un segundo toque en «Guardar» lo detiene. Resolución máxima 1920 px de lado largo.
+- **Guardar:** reproduce el tramo con el look y graba lo que sale, con su sonido. Tarda lo que dura el tramo; un segundo toque en «Guardar» lo detiene. Sale al tamaño del original, hasta 4K (3840 px de lado largo); debajo del vídeo se puede elegir 1080p o 720p si el teléfono no llega a grabar fluido o el archivo pesa demasiado (4K son unos 250 MB por minuto).
 - **Exportar LUT:** guarda el look y los ajustes como archivo `.cube` (33 puntos) para usarlo en DaVinci Resolve, Premiere o Final Cut. No incluye viñeteado, granulado ni claridad.
 
 Límites conocidos: la claridad no se aplica al vídeo; el selector de iOS puede entregar el vídeo ya comprimido (desde Archivos llega el original); y el guardado graba en tiempo real, no vuelve a codificar el original fotograma a fotograma.
