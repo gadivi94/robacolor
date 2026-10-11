@@ -374,33 +374,48 @@ footer p{margin:0;max-width:70ch}
 'use strict';
 const $ = id => document.getElementById(id);
 const el = (tag, cls) => { const e = document.createElement(tag); if (cls) e.className = cls; return e; };
+/* ENGINE:BEGIN */
 const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
 const ss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
-/* ---------- Color: sRGB <-> Oklab ---------- */
+/* ---------- Color: RGB <-> Oklab, en sRGB o en Display P3 ---------- */
 const S2L = new Float32Array(256);
 for (let i = 0; i < 256; i++) { const c = i / 255; S2L[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
-const L2S = new Uint8ClampedArray(4097);
-for (let i = 0; i <= 4096; i++) { const c = i / 4096; L2S[i] = Math.round(255 * (c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055)); }
-
-function toLab(px) {
-  const n = px.length >> 2, L = new Float32Array(n), A = new Float32Array(n), B = new Float32Array(n);
-  for (let i = 0, j = 0; i < n; i++, j += 4) {
-    const r = S2L[px[j]], g = S2L[px[j + 1]], b = S2L[px[j + 2]];
-    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
-    const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-    L[i] = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s;
-    A[i] = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
-    B[i] = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
-  }
-  return { L, A, B, n };
+const EN = 8192, ENC = new Float32Array(EN + 1); // lineal 0..1 -> valor codificado 0..255 (con decimales, para el tramado)
+for (let i = 0; i <= EN; i++) { const c = i / EN; ENC[i] = 255 * (c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055); }
+// Matrices RGB lineal -> LMS y LMS -> RGB lineal para cada espacio de color
+const M_IN = {
+  srgb: [0.4122214708, 0.5363325363, 0.0514459929, 0.2119034982, 0.6806995451, 0.1073969566, 0.0883024619, 0.2817188376, 0.6299787005],
+  p3: [0.4813798544, 0.4621183697, 0.0565017758, 0.2288319449, 0.6532168128, 0.1179512422, 0.0839457557, 0.2241652689, 0.6918889754]
+};
+const M_OUT = {
+  srgb: [4.0767416621, -3.3077115913, 0.2309699292, -1.2684380046, 2.6097574011, -0.3413193965, -0.0041960863, -0.7034186147, 1.7076147010],
+  p3: [3.1277689872, -2.2571357962, 0.1293668090, -1.0910090478, 2.4133317587, -0.3223227108, -0.0260108130, -0.5080413259, 1.5340521389]
+};
+function labFromLinear(r, g, b, m, o, i) {
+  const l = Math.cbrt(m[0] * r + m[1] * g + m[2] * b), mm = Math.cbrt(m[3] * r + m[4] * g + m[5] * b), s = Math.cbrt(m[6] * r + m[7] * g + m[8] * b);
+  o.L[i] = 0.2104542553 * l + 0.7936177850 * mm - 0.0040720468 * s;
+  o.A[i] = 1.9779984951 * l - 2.4285922050 * mm + 0.4505937099 * s;
+  o.B[i] = 0.0259040371 * l + 0.7827717662 * mm - 0.8086757660 * s;
+}
+const newLab = n => ({ L: new Float32Array(n), A: new Float32Array(n), B: new Float32Array(n), n });
+// Píxeles RGBA de 8 bits (codificados) -> Oklab
+function toLab(px, space) {
+  const n = px.length >> 2, o = newLab(n), m = M_IN[space || 'srgb'];
+  for (let i = 0, j = 0; i < n; i++, j += 4) labFromLinear(S2L[px[j]], S2L[px[j + 1]], S2L[px[j + 2]], m, o, i);
+  return o;
+}
+// RGB lineal de 16 bits (revelado RAW): 3 valores por píxel, 65535 = blanco
+function toLabLinear16(u16, space) {
+  const n = (u16.length / 3) | 0, o = newLab(n), m = M_IN[space || 'srgb'], k = 1 / 65535;
+  for (let i = 0, j = 0; i < n; i++, j += 3) labFromLinear(u16[j] * k, u16[j + 1] * k, u16[j + 2] * k, m, o, i);
+  return o;
 }
 function labToRgb(L, a, b) {
   const l_ = L + 0.3963377774 * a + 0.2158037573 * b, m_ = L - 0.1055613458 * a - 0.0638541728 * b, s_ = L - 0.0894841775 * a - 1.2914855480 * b;
-  const l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
-  const cl = v => L2S[(clamp(v, 0, 1) * 4096 + 0.5) | 0];
-  return [cl(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s), cl(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s), cl(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s)];
+  const l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_, M = M_OUT.srgb;
+  const cl = v => Math.round(ENC[(clamp(v, 0, 1) * EN + 0.5) | 0]);
+  return [cl(M[0] * l + M[1] * m + M[2] * s), cl(M[3] * l + M[4] * m + M[5] * s), cl(M[6] * l + M[7] * m + M[8] * s)];
 }
 const hex = rgb => '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
 // Dirección en Oklab (a, b) de un tono de la rueda de color
@@ -411,52 +426,120 @@ function hueDir(h) {
   return [lab.A[0] / m, lab.B[0] / m];
 }
 
-/* ---------- Análisis de una imagen ---------- */
-const NB = 256, K = 8, Q = 64;
+/* ---------- Análisis de una imagen ----------
+   Para copiar un look como lo haría un preset hay que separar lo que es edición de lo que es contenido.
+   Se apoya en dos cosas que casi toda foto sin editar cumple: sus negros llegan cerca de cero en los tres
+   canales, y sus grises son grises. Lo que la referencia se aparta de eso es edición:
+   - el punto negro por canal da el lavado de negros (y su color);
+   - el color de las zonas neutras según su luminosidad da el tinte de sombras, medios y luces.
+   Además se miden los cuantiles de luz, el nivel de saturación y el reparto de tonos. */
+const NB = 256, KN = 9, AB = 48, ABR = 0.2, HB = 72, CBINS = 240, CMAX = 0.4;
+const TP = [0.003, 0.02, 0.1, 0.25, 0.5, 0.75, 0.9, 0.98, 0.997];
+const NRAD = 0.04, NPEAK = 0.001; // radio máximo y altura mínima de un grupo para contarlo como neutro
+const TUNE = { lift: 0.6, liftPrior: 0.02, liftMax: 0.12, tint: 1, lamMid: 0.15, sRel: 0.3, sPri: 0.1, hue: 0.6, hsat: 0.5 };
+function bandAt(arr, L) { const p = clamp(L, 0, 1) * (KN - 1), k = Math.min(KN - 2, p | 0); return arr[k] + (arr[k + 1] - arr[k]) * (p - k); }
+const sdec = c => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+// Niveles: una rampa de grises pasada por «negro -> k0» en cada canal. Devuelve, para cada gris de entrada,
+// su luminosidad y el color en que queda.
+function levels(k0) {
+  const G = 64, Lin = new Float32Array(G + 1), o = newLab(G + 1);
+  for (let i = 0; i <= G; i++) { const g = i / G; Lin[i] = Math.cbrt(sdec(g)); labFromLinear(sdec(k0[0] + (1 - k0[0]) * g), sdec(k0[1] + (1 - k0[1]) * g), sdec(k0[2] + (1 - k0[2]) * g), M_IN.srgb, o, i); }
+  return { Lin, Lout: o.L, ta: o.A, tb: o.B };
+}
+function interp(xs, ys, x) { const n = xs.length; if (x <= xs[0]) return ys[0]; if (x >= xs[n - 1]) return ys[n - 1]; let i = 1; while (xs[i] < x) i++; const t = (x - xs[i - 1]) / (xs[i] - xs[i - 1] || 1); return ys[i - 1] + (ys[i] - ys[i - 1]) * t; }
 function analyze(lab) {
-  const { L, A, B, n } = lab;
-  const hist = new Float64Array(NB);
-  const bin = v => { const x = (v * NB) | 0; return x < 0 ? 0 : x >= NB ? NB - 1 : x; };
-  for (let i = 0; i < n; i++) hist[bin(L[i])]++;
-  const cdfE = new Float64Array(NB + 1), cdfM = new Float64Array(NB);
-  for (let b = 0, c = 0; b < NB; b++) { cdfM[b] = (c + hist[b] / 2) / n; c += hist[b]; cdfE[b + 1] = c / n; }
-  // Estadística de color por franja de luminosidad (cuantiles), con pesos triangulares
-  const sw = new Float64Array(K), sa = new Float64Array(K), sb = new Float64Array(K), saa = new Float64Array(K), sbb = new Float64Array(K);
-  let gL = 0, gA = 0, gB = 0, gAA = 0, gBB = 0, gC = 0;
-  for (let i = 0; i < n; i++) {
-    const a = A[i], b = B[i], p = cdfM[bin(L[i])] * (K - 1);
-    const i0 = Math.min(K - 2, p | 0), f = p - i0, w0 = 1 - f;
-    sw[i0] += w0; sa[i0] += w0 * a; sb[i0] += w0 * b; saa[i0] += w0 * a * a; sbb[i0] += w0 * b * b;
-    sw[i0 + 1] += f; sa[i0 + 1] += f * a; sb[i0 + 1] += f * b; saa[i0 + 1] += f * a * a; sbb[i0 + 1] += f * b * b;
-    gL += L[i]; gA += a; gB += b; gAA += a * a; gBB += b * b; gC += Math.sqrt(a * a + b * b);
+  const { L, A, B, n } = lab, step = Math.max(1, Math.floor(n / 160000)), Mo = M_OUT.srgb;
+  const hist = new Float64Array(NB), H2 = new Float32Array(KN * AB * AB), bm = new Float64Array(KN), ch = [new Float64Array(256), new Float64Array(256), new Float64Array(256)];
+  let cnt = 0, gL = 0, gA = 0, gB = 0, gC = 0;
+  for (let i = 0; i < n; i += step) {
+    const l = clamp(L[i], 0, 1), a = A[i], b = B[i];
+    hist[Math.min(NB - 1, (l * NB) | 0)]++; cnt++; gL += l; gA += a; gB += b; gC += Math.sqrt(a * a + b * b);
+    const p = l * (KN - 1), k = Math.min(KN - 2, p | 0), f = p - k;
+    const ia = clamp(Math.floor((a + ABR) / (2 * ABR) * AB), 0, AB - 1), ib = clamp(Math.floor((b + ABR) / (2 * ABR) * AB), 0, AB - 1), o = ib * AB + ia;
+    H2[k * AB * AB + o] += 1 - f; H2[(k + 1) * AB * AB + o] += f; bm[k] += 1 - f; bm[k + 1] += f;
+    const l_ = l + 0.3963377774 * a + 0.2158037573 * b, m_ = l - 0.1055613458 * a - 0.0638541728 * b, s_ = l - 0.0894841775 * a - 1.2914855480 * b, lc = l_ * l_ * l_, mc = m_ * m_ * m_, sc = s_ * s_ * s_;
+    ch[0][(ENC[(clamp(Mo[0] * lc + Mo[1] * mc + Mo[2] * sc, 0, 1) * EN + 0.5) | 0] + 0.5) | 0]++;
+    ch[1][(ENC[(clamp(Mo[3] * lc + Mo[4] * mc + Mo[5] * sc, 0, 1) * EN + 0.5) | 0] + 0.5) | 0]++;
+    ch[2][(ENC[(clamp(Mo[6] * lc + Mo[7] * mc + Mo[8] * sc, 0, 1) * EN + 0.5) | 0] + 0.5) | 0]++;
   }
-  const mA = gA / n, mB = gB / n, sdA = Math.sqrt(Math.max(0, gAA / n - mA * mA)), sdB = Math.sqrt(Math.max(0, gBB / n - mB * mB));
-  const nodes = { ma: [], mb: [], sa: [], sb: [] };
-  for (let k = 0; k < K; k++) {
-    if (sw[k] < n * 1e-5) { nodes.ma.push(mA); nodes.mb.push(mB); nodes.sa.push(sdA); nodes.sb.push(sdB); continue; }
-    const ma = sa[k] / sw[k], mb = sb[k] / sw[k];
-    nodes.ma.push(ma); nodes.mb.push(mb);
-    nodes.sa.push(Math.sqrt(Math.max(0, saa[k] / sw[k] - ma * ma)));
-    nodes.sb.push(Math.sqrt(Math.max(0, sbb[k] / sw[k] - mb * mb)));
+  const cdfE = new Float64Array(NB + 1);
+  for (let b = 0; b < NB; b++) cdfE[b + 1] = cdfE[b] + hist[b] / cnt;
+  const quant = t => { let b = 0; while (b < NB - 1 && cdfE[b + 1] < t) b++; const lo = cdfE[b], hi = cdfE[b + 1]; return (b + (hi > lo ? clamp((t - lo) / (hi - lo), 0, 1) : 0)) / NB; };
+  const tq = TP.map(quant);
+  // Punto negro de cada canal (percentil 0,5) y los niveles que implica
+  const kb = ch.map(hc => { let c = 0; for (let v = 0; v < 256; v++) { c += hc[v]; if (c >= 0.005 * cnt) return v / 255; } return 1; });
+  const k0 = kb.map(v => TUNE.lift * clamp(v - TUNE.liftPrior, 0, TUNE.liftMax)), lev = levels(k0);
+
+  // Eje neutro: en cada franja de luminosidad se busca el grupo de píxeles (máximo local del histograma de color)
+  // más cercano al gris. Así una pared amarilla o un cielo azul no se confunden con un tinte de edición.
+  const na = new Float64Array(KN), nb = new Float64Array(KN), cf = new Float64Array(KN), binC = j => (j + 0.5) / AB * 2 * ABR - ABR;
+  const sm = new Float32Array(AB * AB), tmp = new Float32Array(AB * AB);
+  for (let k = 0; k < KN; k++) {
+    if (bm[k] < cnt * 2e-4) continue;
+    const off = k * AB * AB; let mx = 0, my = 0, vx = 0;
+    for (let q = 0; q < AB * AB; q++) { sm[q] = H2[off + q]; const x = binC(q % AB), y = binC((q / AB) | 0); mx += sm[q] * x; my += sm[q] * y; }
+    mx /= bm[k]; my /= bm[k];
+    for (let q = 0; q < AB * AB; q++) { const x = binC(q % AB) - mx, y = binC((q / AB) | 0) - my; vx += sm[q] * (x * x + y * y); }
+    const spread = Math.sqrt(vx / bm[k]);
+    for (let pass = 0; pass < 2; pass++) { // suavizado binomial separable
+      for (let j = 0; j < AB; j++) for (let i2 = 0; i2 < AB; i2++) tmp[j * AB + i2] = 0.25 * sm[j * AB + Math.max(0, i2 - 1)] + 0.5 * sm[j * AB + i2] + 0.25 * sm[j * AB + Math.min(AB - 1, i2 + 1)];
+      for (let j = 0; j < AB; j++) for (let i2 = 0; i2 < AB; i2++) sm[j * AB + i2] = 0.25 * tmp[Math.max(0, j - 1) * AB + i2] + 0.5 * tmp[j * AB + i2] + 0.25 * tmp[Math.min(AB - 1, j + 1) * AB + i2];
+    }
+    let best = -1, bd = NRAD * NRAD;
+    for (let j = 1; j < AB - 1; j++) for (let i2 = 1; i2 < AB - 1; i2++) {
+      const q = j * AB + i2, vq = sm[q]; if (vq < bm[k] * NPEAK) continue;
+      if (vq < sm[q - 1] || vq < sm[q + 1] || vq < sm[q - AB] || vq < sm[q + AB] || vq < sm[q - AB - 1] || vq < sm[q - AB + 1] || vq < sm[q + AB - 1] || vq < sm[q + AB + 1]) continue;
+      const x = binC(i2), y = binC(j), d = x * x + y * y; if (d < bd) { bd = d; best = q; }
+    }
+    let cx, cy;
+    if (best >= 0) { cx = binC(best % AB); cy = binC((best / AB) | 0); }
+    else if (spread < 0.02) { cx = mx; cy = my; } // imagen de un solo tinte (blanco y negro virado): todo es «neutro»
+    else continue;
+    let mass = 0;
+    for (let it = 0; it < 4; it++) {
+      const s2 = 2 * 0.012 * 0.012; let sw = 0, sx = 0, sy = 0;
+      for (let j = 0; j < AB; j++) {
+        const y = binC(j) - cy; if (y > 0.05 || y < -0.05) continue;
+        for (let i2 = 0; i2 < AB; i2++) { const hv = H2[off + j * AB + i2]; if (!hv) continue; const x = binC(i2) - cx, w = hv * Math.exp(-(x * x + y * y) / s2); sw += w; sx += w * x; sy += w * y; }
+      }
+      if (sw < 1e-9) break; cx += sx / sw; cy += sy / sw; mass = sw;
+    }
+    na[k] = cx; nb[k] = cy; cf[k] = mass / bm[k];
   }
-  const qf = [];
-  for (let k = 0, b = 0; k <= Q; k++) {
-    const t = clamp(k / Q, 0.001, 0.999);
-    while (b < NB - 1 && cdfE[b + 1] < t) b++;
-    const lo = cdfE[b], hi = cdfE[b + 1], f = hi > lo ? (t - lo) / (hi - lo) : 0;
-    qf.push((b + clamp(f, 0, 1)) / NB);
+  // Tinte por franja = el que dan los niveles + lo que añaden los neutros medidos, según lo fiables que sean
+  // (las franjas con pocos neutros se apoyan en las vecinas; sin neutros no se inventa tinte)
+  const wg = new Float64Array(KN), KER = [1, 0.45, 0.12], la = [], lb = []; let G = 0;
+  for (let k = 0; k < KN; k++) {
+    wg[k] = Math.min(1, cf[k] / 0.03) * Math.min(1, bm[k] / (cnt * 0.004)); G += wg[k] * bm[k] / cnt;
+    const Lk = k / (KN - 1); la.push(interp(lev.Lout, lev.ta, Lk)); lb.push(interp(lev.Lout, lev.tb, Lk));
   }
+  const da = [], db = [], trust = TUNE.tint * Math.min(1, G / 0.15);
+  for (let k = 0; k < KN; k++) {
+    let sa = 0, sb = 0, sw = 0.05;
+    for (let j = Math.max(0, k - 2); j <= Math.min(KN - 1, k + 2); j++) { const w = KER[Math.abs(j - k)] * wg[j]; sa += w * (na[j] - la[j]); sb += w * (nb[j] - lb[j]); sw += w; }
+    da.push(la[k] + trust * sa / sw); db.push(lb[k] + trust * sb / sw);
+  }
+
+  // Saturación y reparto de tonos: «rel» descuenta el tinte (para leer una referencia), «abs» no (para la foto de destino)
+  const mk = () => ({ ch: new Float64Array(CBINS), hn: new Float64Array(HB), hc: new Float64Array(HB) }), rel = mk(), abs = mk();
+  const acc = (o, a, b) => {
+    const c = Math.sqrt(a * a + b * b); o.ch[Math.min(CBINS - 1, (c / CMAX * CBINS) | 0)]++;
+    if (c > 0.025) { let h = Math.atan2(b, a) * 57.29577951; if (h < 0) h += 360; const x = h / 5 - 0.5, j = Math.floor(x), f = x - j, j0 = (j + HB) % HB, j1 = (j + 1) % HB; o.hn[j0] += 1 - f; o.hn[j1] += f; o.hc[j0] += (1 - f) * c; o.hc[j1] += f * c; }
+  };
+  for (let i = 0; i < n; i += step) { const l = L[i]; acc(rel, A[i] - bandAt(da, l), B[i] - bandAt(db, l)); acc(abs, A[i], B[i]); }
+  const fin = o => {
+    let c = 0, p95 = 0; for (let j = 0; j < CBINS; j++) { c += o.ch[j]; if (c >= 0.95 * cnt) { p95 = (j + 0.5) / CBINS * CMAX; break; } }
+    return { p95, hn: Array.from(o.hn, v => v / cnt), hc: Array.from(o.hc, v => v / cnt) };
+  };
   const h64 = [];
-  for (let k = 0; k < 64; k++) h64.push((hist[k * 4] + hist[k * 4 + 1] + hist[k * 4 + 2] + hist[k * 4 + 3]) / n);
-  return { cdfE, qf, nodes, hist: h64, metrics: { light: gL / n, contrast: qfAt(qf, 0.95) - qfAt(qf, 0.05), chroma: gC / n, warm: mB * 0.9 + mA * 0.4 } };
+  for (let k = 0; k < 64; k++) h64.push((hist[k * 4] + hist[k * 4 + 1] + hist[k * 4 + 2] + hist[k * 4 + 3]) / cnt);
+  return { tq, k0, na: da, nb: db, rel: fin(rel), abs: fin(abs), hist: h64,
+    metrics: { light: gL / cnt, contrast: quant(0.95) - quant(0.05), chroma: gC / cnt, warm: (gB / cnt) * 0.9 + (gA / cnt) * 0.4 } };
 }
-function qfAt(qf, q) { const x = clamp(q * Q, 0, Q), i = Math.min(Q - 1, x | 0); return qf[i] + (qf[i + 1] - qf[i]) * (x - i); }
-function cdfAt(T, L) { const x = clamp(L * NB, 0, NB - 1e-4), b = x | 0; return T.cdfE[b] + (T.cdfE[b + 1] - T.cdfE[b]) * (x - b); }
-function nodeAt(nd, q) {
-  const p = clamp(q, 0, 1) * (K - 1), i = Math.min(K - 2, p | 0), f = p - i;
-  const lerp = arr => arr[i] + (arr[i + 1] - arr[i]) * f;
-  return { ma: lerp(nd.ma), mb: lerp(nd.mb), sa: lerp(nd.sa), sb: lerp(nd.sb) };
-}
+// El look es lo que se guarda de una referencia: pequeño, sin la imagen, reutilizable como un preset
+const r4 = v => Math.round(v * 1e4) / 1e4;
+function lookOf(st) { return { v: 2, tq: st.tq.map(r4), k0: st.k0.map(r4), na: st.na.map(r4), nb: st.nb.map(r4), p95: r4(st.rel.p95), hn: st.rel.hn.map(v => Math.round(v * 1e5) / 1e5), hc: st.rel.hc.map(v => Math.round(v * 1e6) / 1e6) }; }
+function makeLook(lab) { return lookOf(analyze(lab)); }
 
 /* ---------- Paleta dominante (k-means con semilla fija) ---------- */
 function mulberry(seed) { return () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -480,7 +563,7 @@ function palette(lab, k) {
 }
 
 /* ---------- Estado de los ajustes ---------- */
-const DEFS = { amount: 100, color: 100, tone: 60, exp: 0, con: 0, hi: 0, sh: 0, wh: 0, bl: 0, temp: 0, tint: 0, vib: 0, sat: 0, bal: 0, clar: 0, vig: 0, grain: 0 };
+const DEFS = { amount: 100, color: 100, tone: 100, exp: 0, con: 0, hi: 0, sh: 0, wh: 0, bl: 0, temp: 0, tint: 0, vib: 0, sat: 0, bal: 0, clar: 0, vig: 0, grain: 0 };
 const V = Object.assign({}, DEFS);
 const BANDS = [['Rojo', 25, '#d64545'], ['Naranja', 55, '#e08a3c'], ['Amarillo', 100, '#d9c23a'], ['Verde', 142, '#4fa35a'], ['Aguamarina', 195, '#3fb5b0'], ['Azul', 255, '#3f6fd1'], ['Púrpura', 300, '#7d55c7'], ['Magenta', 345, '#c94fa8']];
 const MIX = { hue: new Array(8).fill(0), sat: new Array(8).fill(0), lum: new Array(8).fill(0) };
@@ -513,36 +596,58 @@ function curveLUT(pts) {
   return out;
 }
 
-/* ---------- Compilar los ajustes en tablas ---------- */
+/* ---------- Del look a una transformación ----------
+   La curva de luz sale de los niveles (lavado de negros). Los medios tonos dependen sobre todo de la escena,
+   así que solo se acercan un poco (lamMid) a los de la referencia; PRIOR son los de una foto corriente. */
+const PRIOR = [0.09, 0.16, 0.29, 0.41, 0.575, 0.725, 0.83, 0.93, 0.975];
+function lookCurve(R) {
+  const lev = levels(R.k0), pull = [{ x: 0, y: 0 }];
+  for (let j = 2; j <= 6; j++) pull.push({ x: PRIOR[j], y: R.tq[j] - interp(lev.Lin, lev.Lout, PRIOR[j]) });
+  pull.push({ x: 1, y: 0 });
+  const pl = curveSigned(pull), out = new Float32Array(CN + 1);
+  for (let k = 0, prev = 0; k <= CN; k++) { const x = k / CN; let y = clamp(interp(lev.Lin, lev.Lout, x) + TUNE.lamMid * pl(x), 0, 1); if (k && y < prev + 0.15 / CN) y = Math.min(1, prev + 0.15 / CN); out[k] = y; prev = y; }
+  return out;
+}
+// Interpolación lineal a trozos suavizada (los valores pueden ser negativos)
+function curveSigned(pts) { const xs = pts.map(p => p.x), ys = pts.map(p => p.y); return x => { const e = 0.04; return (interp(xs, ys, x - e) + 2 * interp(xs, ys, x) + interp(xs, ys, x + e)) / 4; }; }
+// Saturación global y, por cada tono, cuánto girarlo y saturarlo para acercarlo a los colores de la referencia
+function lookHue(T, R, kC) {
+  const sm = src => { let a = Float64Array.from(src); for (let p = 0; p < 2; p++) { const b = new Float64Array(HB); for (let j = 0; j < HB; j++) b[j] = 0.25 * a[(j + HB - 1) % HB] + 0.5 * a[j] + 0.25 * a[(j + 1) % HB]; a = b; } return a; };
+  const rn = sm(R.hn), rc = sm(R.hc), tn = sm(T.abs.hn), tc = sm(T.abs.hc), sum = a => a.reduce((s, v) => s + v, 0);
+  const NR = sum(rn), NT = sum(tn), rhoG = NR > 1e-4 && NT > 1e-4 ? (sum(rc) / NR) / (sum(tc) / NT) : 1;
+  let s = Math.exp(TUNE.sRel * Math.log(Math.max(R.p95, 1e-4) / Math.max(T.abs.p95, 0.01)) + TUNE.sPri * Math.log(Math.max(R.p95, 1e-4) / 0.10));
+  s = clamp(s, 0.4, 1.6) * ss(0.003, 0.03, R.p95); // una referencia casi sin color es un blanco y negro: se respeta
+  const sh = new Float64Array(HB), sf = new Float64Array(HB), W = 8;
+  for (let j = 0; j < HB; j++) {
+    let mR = 0, mT = 0, cR = 0, cT = 0, dR = 0, dT = 0;
+    for (let k = -W; k <= W; k++) { const w = 1 - Math.abs(k) / (W + 1), q = (j + k + HB) % HB; mR += rn[q] * w; mT += tn[q] * w; cR += rc[q] * w; cT += tc[q] * w; dR += rc[q] * w * 5 * k; dT += tc[q] * w * 5 * k; }
+    const conf = Math.sqrt(Math.min(1, mR / 0.02) * Math.min(1, mT / 0.02));
+    sh[j] = cR > 1e-7 && cT > 1e-7 ? clamp(TUNE.hue * (dR / cR - dT / cT) * conf, -30, 30) : 0;
+    const f = mR > 1e-5 && mT > 1e-5 ? clamp(Math.pow((cR / mR) / (cT / mT) / rhoG, TUNE.hsat), 0.6, 1.5) : 1;
+    sf[j] = s * (1 + conf * (f - 1));
+  }
+  const LC = new Float32Array(360), LS = new Float32Array(360), LT = new Float32Array(360);
+  for (let d = 0; d < 360; d++) {
+    const x = d / 5 - 0.5, j = Math.floor(x), f = x - j, j0 = (j + HB) % HB, j1 = (j + 1) % HB;
+    const rot = (sh[j0] + (sh[j1] - sh[j0]) * f) * kC * Math.PI / 180;
+    LC[d] = Math.cos(rot); LS[d] = Math.sin(rot); LT[d] = Math.max(0, 1 + kC * (sf[j0] + (sf[j1] - sf[j0]) * f - 1));
+  }
+  return { LC, LS, LT };
+}
+
+/* ---------- Compilar look y ajustes en tablas ---------- */
 const N = 1024;
 function compile(T, R) {
   const v = k => V[k] / 100;
   const kT = v('amount') * v('tone'), kC = v('amount') * v('color');
-  // 1) Look de la referencia: curva de luz por cuantiles + color por franja de luminosidad
-  const Lm = new Float32Array(N), SA = new Float32Array(N), OA = new Float32Array(N), SB = new Float32Array(N), OB = new Float32Array(N);
-  const cl = x => clamp(x, 0, 2.5), e = 0.004;
-  let mid = 0;
+  // 1) Look: curva de luz, tinte por luminosidad y ajuste por tonos
+  const lc = lookCurve(R), LO = new Float32Array(N + 1), OA = new Float32Array(N), OB = new Float32Array(N);
   for (let i = 0; i < N; i++) {
-    const Lc = (i + 0.5) / N, q = cdfAt(T, Lc);
-    if (q < 0.5) mid = i;
-    Lm[i] = qfAt(R.qf, q);
-    const t = nodeAt(T.nodes, q), r = nodeAt(R.nodes, q);
-    const rc = cl(Math.sqrt((r.sa * r.sa + r.sb * r.sb) / (t.sa * t.sa + t.sb * t.sb + e * e)));
-    const sa = Math.sqrt(cl(r.sa / Math.max(t.sa, e)) * rc), sb = Math.sqrt(cl(r.sb / Math.max(t.sb, e)) * rc);
-    SA[i] = 1 + kC * (sa - 1); OA[i] = kC * (r.ma - sa * t.ma);
-    SB[i] = 1 + kC * (sb - 1); OB[i] = kC * (r.mb - sb * t.mb);
+    const Lc = (i + 0.5) / N, x = Lc * CN, xi = Math.min(CN - 1, x | 0), Lk = Lc + kT * (lc[xi] + (lc[xi + 1] - lc[xi]) * (x - xi) - Lc);
+    LO[i] = Lk; OA[i] = kC * bandAt(R.na, Lk); OB[i] = kC * bandAt(R.nb, Lk);
   }
-  const tmp = new Float32Array(N), R0 = 10;
-  for (let pass = 0; pass < 2; pass++) {
-    for (let i = 0; i < N; i++) { let s = 0; for (let j = -R0; j <= R0; j++) s += Lm[clamp(i + j, 0, N - 1)]; tmp[i] = s / (2 * R0 + 1); }
-    Lm.set(tmp);
-  }
-  const mn = 0.3 / N, mx = 3 / N;
-  for (let i = mid + 1; i < N; i++) Lm[i] = Lm[i - 1] + clamp(Lm[i] - Lm[i - 1], mn, mx);
-  for (let i = mid - 1; i >= 0; i--) Lm[i] = Lm[i + 1] - clamp(Lm[i + 1] - Lm[i], mn, mx);
-  const LO = new Float32Array(N + 1);
-  for (let i = 0; i < N; i++) { const Lc = (i + 0.5) / N; LO[i] = Lc + kT * (clamp(Lm[i], 0, 1) - Lc); }
   LO[N] = LO[N - 1];
+  const { LC, LS, LT } = lookHue(T, R, kC);
 
   // 2) Luz: exposición, contraste, iluminaciones, sombras, blancos, negros y curva
   const eM = Math.pow(2, v('exp') * 2 / 3), kc = Math.pow(2, v('con') * 1.2), hi = v('hi'), sh = v('sh'), wh = v('wh'), bl = v('bl');
@@ -578,7 +683,7 @@ function compile(T, R) {
       GA[i] = wS * oS[0] + wM * oM[0] + wH * oH[0]; GB[i] = wS * oS[1] + wM * oM[1] + wH * oH[1];
     }
   }
-  return { LO, SA, OA, SB, OB, TL, CF, RC, RS, HS, HL, hOn, GA, GB, gOn,
+  return { LO, OA, OB, LC, LS, LT, lOn: kC > 0, TL, CF, RC, RS, HS, HL, hOn, GA, GB, gOn,
     sat: 1 + v('sat'), vib: v('vib'), tA: v('temp') * 0.012 + v('tint') * 0.04, tB: v('temp') * 0.05 - v('tint') * 0.012,
     clar: v('clar'), vig: v('vig'), grain: v('grain') };
 }
@@ -587,8 +692,8 @@ function hash(x, y) { let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263)
 
 /* Aplica todo el revelado a una franja de w x h píxeles que empieza en la fila y0 de una imagen W x H */
 function process(C, lab, out, w, h, y0, W, H, tg) {
-  const { L, A, B } = lab, { LO, SA, OA, SB, OB, TL, CF, RC, RS, HS, HL, GA, GB, hOn, gOn } = C;
-  const bw = tg.pw, bh = tg.ph, same = W === bw && H === bh, sx = bw / W, sy = bh / H;
+  const { L, A, B } = lab, { LO, OA, OB, LC, LS, LT, lOn, TL, CF, RC, RS, HS, HL, GA, GB, hOn, gOn } = C;
+  const bw = tg.pw, bh = tg.ph, same = W === bw && H === bh, sx = bw / W, sy = bh / H, M = M_OUT[tg.space || 'srgb'];
   const blur = C.clar ? tg.blur : null, clar = C.clar * 1.2;
   const satF = C.sat, vib = C.vib, tA = C.tA, tB = C.tB, vig = C.vig * 0.6, gr = C.grain * 0.09;
   const dx2 = new Float32Array(w);
@@ -607,11 +712,19 @@ function process(C, lab, out, w, h, y0, W, H, tg) {
           const uu = Math.max(0, (x + 0.5) * sx - 0.5), u0 = Math.max(0, Math.min(bw - 2, uu | 0)), fu = Math.min(1, uu - u0), r0 = v0 * bw + u0, r1 = r0 + bw;
           bv = (blur[r0] * (1 - fu) + blur[r0 + 1] * fu) * (1 - fv) + (blur[r1] * (1 - fu) + blur[r1 + 1] * fu) * fv;
         }
-        const t = 2 * l - 1; l += clar * (l - bv) * (1 - t * t); l = l < 0 ? 0 : l > 1 ? 1 : l;
+        const t = 2 * l - 1; l += clar * (l - bv) * (1 - t * t);
       }
+      l = l < 0 ? 0 : l > 1 ? 1 : l;
+      // Look de la referencia
       const xq = l * N - 0.5, xi = xq <= 0 ? 0 : xq >= N - 1 ? N - 1 : xq | 0, xf = xq <= 0 || xq >= N - 1 ? 0 : xq - xi;
       const Lk = LO[xi] + (LO[xi + 1] - LO[xi]) * xf;
-      let a = A[i] * SA[xi] + OA[xi], b = B[i] * SB[xi] + OB[xi];
+      let a = A[i], b = B[i];
+      if (lOn) {
+        const c2 = a * a + b * b;
+        if (c2 > 1e-8) { let hd = Math.atan2(b, a) * 57.29577951; if (hd < 0) hd += 360; const d = hd >= 360 ? 359 : hd | 0, na = a * LC[d] - b * LS[d], nb = a * LS[d] + b * LC[d], sf = LT[d]; a = na * sf; b = nb * sf; }
+        a += OA[xi]; b += OB[xi];
+      }
+      // Ajustes manuales
       const tq = Lk * N - 0.5, ti = tq <= 0 ? 0 : tq >= N - 1 ? N - 1 : tq | 0, tf = tq <= 0 || tq >= N - 1 ? 0 : tq - ti;
       let Lo = TL[ti] + (TL[ti + 1] - TL[ti]) * tf;
       const cf = CF[ti] * satF; a = a * cf + tA * Lo; b = b * cf + tB * Lo;
@@ -626,20 +739,36 @@ function process(C, lab, out, w, h, y0, W, H, tg) {
       }
       if (gOn) { const gi = Lo <= 0 ? 0 : Lo >= 1 ? N - 1 : (Lo * N) | 0; a += GA[gi]; b += GB[gi]; }
       if (vig) { const d = (dx2[x] + dy2) * 0.5, m = Math.max(0, 1 + vig * d * Math.sqrt(d)); Lo *= m; a *= m; b *= m; }
+      let nz = same ? hash(x, Y) : 0;
       if (gr) {
-        let n;
-        if (same) n = hash(x, Y);
-        else { const gx = x * sx, gx0 = gx | 0, fx = gx - gx0, n0 = hash(gx0, gy0), n1 = hash(gx0 + 1, gy0), n2 = hash(gx0, gy0 + 1), n3 = hash(gx0 + 1, gy0 + 1); n = ((n0 + (n1 - n0) * fx) * (1 - gfy) + (n2 + (n3 - n2) * fx) * gfy) * 1.5; }
-        Lo += gr * n * (0.4 + 0.6 * (1 - Math.abs(2 * Lo - 1)));
+        if (!same) { const gx = x * sx, gx0 = gx | 0, fx = gx - gx0, n0 = hash(gx0, gy0), n1 = hash(gx0 + 1, gy0), n2 = hash(gx0, gy0 + 1), n3 = hash(gx0 + 1, gy0 + 1); nz = ((n0 + (n1 - n0) * fx) * (1 - gfy) + (n2 + (n3 - n2) * fx) * gfy) * 1.5; }
+        Lo += gr * nz * (0.4 + 0.6 * (1 - Math.abs(2 * Lo - 1)));
       }
-      if (Lo < 0) Lo = 0;
-      const l_ = Lo + 0.3963377774 * a + 0.2158037573 * b, m_ = Lo - 0.1055613458 * a - 0.0638541728 * b, s_ = Lo - 0.0894841775 * a - 1.2914855480 * b;
-      const lc = l_ * l_ * l_, mc = m_ * m_ * m_, sc = s_ * s_ * s_;
-      const r = 4.0767416621 * lc - 3.3077115913 * mc + 0.2309699292 * sc, g = -1.2684380046 * lc + 2.6097574011 * mc - 0.3413193965 * sc, bb = -0.0041960863 * lc - 0.7034186147 * mc + 1.7076147010 * sc;
-      out[j] = L2S[((r < 0 ? 0 : r > 1 ? 1 : r) * 4096 + 0.5) | 0];
-      out[j + 1] = L2S[((g < 0 ? 0 : g > 1 ? 1 : g) * 4096 + 0.5) | 0];
-      out[j + 2] = L2S[((bb < 0 ? 0 : bb > 1 ? 1 : bb) * 4096 + 0.5) | 0];
-      out[j + 3] = 255;
+      Lo = Lo < 0 ? 0 : Lo > 1 ? 1 : Lo;
+      // Oklab -> RGB. Si el color no cabe en la gama se le quita saturación hacia su gris, sin cambiarle el tono
+      let l_ = Lo + 0.3963377774 * a + 0.2158037573 * b, m_ = Lo - 0.1055613458 * a - 0.0638541728 * b, s_ = Lo - 0.0894841775 * a - 1.2914855480 * b;
+      let lc = l_ * l_ * l_, mc = m_ * m_ * m_, sc = s_ * s_ * s_;
+      let r = M[0] * lc + M[1] * mc + M[2] * sc, g = M[3] * lc + M[4] * mc + M[5] * sc, bb = M[6] * lc + M[7] * mc + M[8] * sc;
+      const lo = r < g ? (r < bb ? r : bb) : (g < bb ? g : bb), hi = r > g ? (r > bb ? r : bb) : (g > bb ? g : bb);
+      if (lo < -0.0005 || hi > 1.0005) {
+        const gy3 = Lo * Lo * Lo; let t = 1;
+        if (hi > 1 && hi > gy3) t = Math.min(t, (1 - gy3) / (hi - gy3));
+        if (lo < 0 && lo < gy3) t = Math.min(t, gy3 / (gy3 - lo));
+        t = t < 0 ? 0 : t;
+        for (let it = 0; it < 2; it++) { // la relación no es lineal: dos pasadas la dejan dentro
+          const a2 = a * t, b2 = b * t;
+          l_ = Lo + 0.3963377774 * a2 + 0.2158037573 * b2; m_ = Lo - 0.1055613458 * a2 - 0.0638541728 * b2; s_ = Lo - 0.0894841775 * a2 - 1.2914855480 * b2;
+          lc = l_ * l_ * l_; mc = m_ * m_ * m_; sc = s_ * s_ * s_;
+          r = M[0] * lc + M[1] * mc + M[2] * sc; g = M[3] * lc + M[4] * mc + M[5] * sc; bb = M[6] * lc + M[7] * mc + M[8] * sc;
+          const lo2 = r < g ? (r < bb ? r : bb) : (g < bb ? g : bb), hi2 = r > g ? (r > bb ? r : bb) : (g > bb ? g : bb);
+          if (lo2 >= -0.002 && hi2 <= 1.002) break;
+          let u = 1; if (hi2 > 1 && hi2 > gy3) u = Math.min(u, (1 - gy3) / (hi2 - gy3)); if (lo2 < 0 && lo2 < gy3) u = Math.min(u, gy3 / (gy3 - lo2)); t *= u < 0 ? 0 : u;
+        }
+      }
+      // Tramado: un ruido de menos de un nivel antes de redondear a 8 bits evita las bandas en los degradados
+      if (!same) nz = hash(x, Y);
+      const e0 = ENC[((r < 0 ? 0 : r > 1 ? 1 : r) * EN + 0.5) | 0] + nz, e1 = ENC[((g < 0 ? 0 : g > 1 ? 1 : g) * EN + 0.5) | 0] + nz, e2 = ENC[((bb < 0 ? 0 : bb > 1 ? 1 : bb) * EN + 0.5) | 0] + nz;
+      out[j] = e0; out[j + 1] = e1; out[j + 2] = e2; out[j + 3] = 255; // el array redondea y recorta a 0..255
     }
   }
 }
@@ -657,11 +786,15 @@ function blurMap(src, w, h) {
   for (let p = 0; p < 3; p++) { pass(a, b, w, 1, h, w); pass(b, a, h, w, w, 1); }
   return a;
 }
+/* ENGINE:END */
 
 /* ---------- Carga de imágenes ---------- */
 const PREV = window.matchMedia && window.matchMedia('(max-width: 699px)').matches ? 960 : 1280;
 function fit(w, h, max) { const s = Math.min(1, max / Math.max(w, h)); return [Math.max(2, Math.round(w * s)), Math.max(2, Math.round(h * s))]; }
-function canvasOf(src, w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(src, 0, 0, w, h); return [c, x]; }
+// Si el navegador lo permite se trabaja en Display P3, la gama de las fotos del iPhone: así no se pierden sus colores más vivos
+const SPACE = (() => { try { const c = document.createElement('canvas'); c.width = c.height = 1; const x = c.getContext('2d', { colorSpace: 'display-p3' }); return x && x.getContextAttributes && x.getContextAttributes().colorSpace === 'display-p3' ? 'p3' : 'srgb'; } catch (e) { return 'srgb'; } })();
+const ctx2d = (c, read) => c.getContext('2d', read ? { willReadFrequently: true, colorSpace: SPACE === 'p3' ? 'display-p3' : 'srgb' } : { colorSpace: SPACE === 'p3' ? 'display-p3' : 'srgb' });
+function canvasOf(src, w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = ctx2d(c, true); x.drawImage(src, 0, 0, w, h); return [c, x]; }
 // Con <img> la orientación de la foto (EXIF) se respeta igual en todos los navegadores y en el iPhone
 async function decode(file) {
   const url = URL.createObjectURL(file);
@@ -678,13 +811,11 @@ function onDouble(node, fn) {
 }
 const NAT = window.RobacolorNative || null; // capa nativa de la app de iPhone; en la web no existe
 const dims = src => [src.naturalWidth || src.width, src.naturalHeight || src.height];
-const r4 = v => Math.round(v * 1e4) / 1e4;
-
 function setRef(src, name, isExample) {
   const [w, h] = dims(src), [aw, ah] = fit(w, h, 512), [, ax] = canvasOf(src, aw, ah);
-  const lab = toLab(ax.getImageData(0, 0, aw, ah).data), st = analyze(lab);
+  const lab = toLab(ax.getImageData(0, 0, aw, ah).data, SPACE), st = analyze(lab);
   const [tw, th] = fit(w, h, 320), [tc] = canvasOf(src, tw, th);
-  S.look = { v: 1, name, qf: st.qf.map(r4), nodes: { ma: st.nodes.ma.map(r4), mb: st.nodes.mb.map(r4), sa: st.nodes.sa.map(r4), sb: st.nodes.sb.map(r4) }, palette: palette(lab, 6), hist: st.hist.map(r4), metrics: st.metrics, thumb: tc.toDataURL('image/jpeg', 0.72) };
+  S.look = Object.assign(lookOf(st), { name, palette: palette(lab, 6), hist: st.hist.map(r4), metrics: st.metrics, thumb: tc.toDataURL('image/jpeg', 0.72) });
   S.activeLook = -1;
   drawRef(src, w, h);
   $('refBadge').textContent = 'Ejemplo'; $('refBadge').hidden = !isExample;
@@ -693,20 +824,20 @@ function setRef(src, name, isExample) {
 function drawRef(src, w, h) {
   const c = $('refCanvas'), [cw, ch] = fit(w, h, 720);
   c.width = cw; c.height = ch; c.style.setProperty('--ar', w / h);
-  c.getContext('2d').drawImage(src, 0, 0, cw, ch);
+  ctx2d(c).drawImage(src, 0, 0, cw, ch);
 }
 function setTarget(src, isExample) {
   if (S.tgt && S.tgt.src !== src) release(S.tgt.src);
   const [w, h] = dims(src), [pw, ph] = fit(w, h, PREV), b = $('before'), a = $('after');
   b.width = a.width = pw; b.height = a.height = ph;
   $('frame').style.setProperty('--ar', w / h);
-  const bx = b.getContext('2d', { willReadFrequently: true });
+  const bx = ctx2d(b, true);
   bx.drawImage(src, 0, 0, pw, ph);
-  const lab = toLab(bx.getImageData(0, 0, pw, ph).data);
+  const lab = toLab(bx.getImageData(0, 0, pw, ph).data, SPACE);
   // Copia a media resolución para que la vista responda al instante mientras se arrastra un control
   const [sw, sh] = fit(pw, ph, Math.round(PREV / 2)), [sc, sx] = canvasOf(b, sw, sh);
-  const small = { w: sw, h: sh, c: sc, x: sx, lab: toLab(sx.getImageData(0, 0, sw, sh).data), out: sx.createImageData(sw, sh) };
-  S.tgt = { src, w, h, pw, ph, lab, small, blur: null, stats: analyze(lab), out: a.getContext('2d').createImageData(pw, ph) };
+  const small = { w: sw, h: sh, c: sc, x: sx, lab: toLab(sx.getImageData(0, 0, sw, sh).data, SPACE), out: sx.createImageData(sw, sh) };
+  S.tgt = { src, w, h, pw, ph, lab, small, blur: null, space: SPACE, stats: analyze(lab), out: ctx2d(a).createImageData(pw, ph) };
   $('tgtBadge').hidden = !isExample;
   $('cHist').setAttribute('d', histPath(S.tgt.stats.hist, 100, 100));
   schedule(true);
@@ -725,7 +856,7 @@ function schedule(full) {
 function render(fast) {
   const t = S.tgt; if (!S.look || !t) return;
   if (V.clar && !t.blur) t.blur = blurMap(t.lab.L, t.pw, t.ph);
-  const C = compile(t.stats, S.look), ax = $('after').getContext('2d'); let d;
+  const C = compile(t.stats, S.look), ax = ctx2d($('after')); let d;
   if (fast) { const s = t.small; process(C, s.lab, s.out.data, s.w, s.h, 0, s.w, s.h, t); s.x.putImageData(s.out, 0, 0); ax.drawImage(s.c, 0, 0, t.pw, t.ph); d = s.out.data; }
   else { process(C, t.lab, t.out.data, t.pw, t.ph, 0, t.pw, t.ph, t); ax.putImageData(t.out, 0, 0); d = t.out.data; }
   const bins = new Array(64).fill(0), step = Math.max(1, Math.floor(d.length / 4 / 24000)) * 4;
@@ -737,13 +868,16 @@ function histPath(bins, W, H) {
   bins.forEach((v, k) => { d += ' L' + ((k + 0.5) * bwid).toFixed(1) + ',' + (H - H * 0.94 * Math.sqrt(v / mx)).toFixed(1); });
   return d + ' L' + W + ',' + H + ' Z';
 }
-function describe(m) {
+function describe(m, lk) {
   const light = Math.round(m.light * 100), con = Math.round(m.contrast * 100), sat = Math.min(100, Math.round(m.chroma * 500)), warm = Math.round(m.warm * 600);
+  const fade = Math.round(Math.max(...lk.k0) * 100), tint = Math.round(100 * Math.max(...lk.na.map((a, k) => Math.hypot(a, lk.nb[k]))) * 10) / 10;
   return [
     ['Luminosidad', light + ' · ' + (light < 40 ? 'clave baja' : light > 62 ? 'clave alta' : 'media')],
     ['Contraste', con + ' · ' + (con < 45 ? 'suave' : con > 65 ? 'alto' : 'medio')],
     ['Saturación', sat + ' · ' + (sat < 20 ? 'apagada' : sat > 40 ? 'intensa' : 'natural')],
-    ['Temperatura', (warm > 0 ? '+' : '') + warm + ' · ' + (warm > 6 ? 'cálida' : warm < -6 ? 'fría' : 'neutra')]
+    ['Temperatura', (warm > 0 ? '+' : '') + warm + ' · ' + (warm > 6 ? 'cálida' : warm < -6 ? 'fría' : 'neutra')],
+    ['Negros', fade >= 2 ? fade + ' · lavados' : '0 · profundos'],
+    ['Tinte', tint < 1 ? '0 · neutro' : tint + ' · ' + (tint < 2.5 ? 'sutil' : 'marcado')]
   ];
 }
 function renderLook() {
@@ -755,18 +889,30 @@ function renderLook() {
     const c = el('i'); c.style.background = h; const s = el('span'); s.textContent = h.slice(1);
     b.append(c, s); b.addEventListener('click', () => copy(h)); sw.appendChild(b);
   }
-  for (const [name, q] of [['Sombras', 0.1], ['Medios', 0.5], ['Luces', 0.9]]) {
-    const nd = nodeAt(lk.nodes, q), d = el('div', 'tone'), i = el('i'), s = el('span');
-    i.style.background = hex(labToRgb(qfAt(lk.qf, q), nd.ma, nd.mb)); s.textContent = name; d.append(i, s); tones.appendChild(d);
+  // El tinte real es sutil; en la muestra se dobla para que se distinga su color
+  for (const [name, Lz] of [['Sombras', 0.25], ['Medios', 0.55], ['Luces', 0.85]]) {
+    const d = el('div', 'tone'), i = el('i'), sp = el('span');
+    i.style.background = hex(labToRgb(Lz, 2 * bandAt(lk.na, Lz), 2 * bandAt(lk.nb, Lz))); sp.textContent = name; d.append(i, sp); tones.appendChild(d);
   }
   $('histoPath').setAttribute('d', histPath(lk.hist, 256, 64));
-  for (const [k, val] of describe(lk.metrics)) { const w = el('div'), dt = el('dt'), dd = el('dd'); dt.textContent = k; dd.textContent = val; w.append(dt, dd); ms.appendChild(w); }
+  for (const [k, val] of describe(lk.metrics, lk)) { const w = el('div'), dt = el('dt'), dd = el('dd'); dt.textContent = k; dd.textContent = val; w.append(dt, dd); ms.appendChild(w); }
 }
 
 /* ---------- Mis looks (se guardan en este navegador) ---------- */
 const STORE = 'robacolor.looks.v1';
 function loadLooks() { try { S.looks = validLooks(JSON.parse(localStorage.getItem(STORE) || localStorage.getItem('colorama.looks.v1') || '[]')); } catch (e) { S.looks = []; } }
-const validLooks = v => Array.isArray(v) ? v.filter(l => l && l.qf && l.nodes && l.palette) : [];
+const validLooks = v => Array.isArray(v) ? v.filter(l => l && l.name && l.palette && l.thumb) : [];
+// Los looks guardados con el motor anterior se vuelven a medir a partir de su miniatura
+function upgradeLooks() {
+  const old = S.looks.filter(l => l.v !== 2); let left = old.length;
+  const done = () => { if (!--left) { persist(); renderLooks(); } };
+  for (const lk of old) {
+    const im = new Image();
+    im.onload = () => { const [c, x] = canvasOf(im, im.naturalWidth, im.naturalHeight), st = analyze(toLab(x.getImageData(0, 0, c.width, c.height).data, SPACE)); delete lk.qf; delete lk.nodes; Object.assign(lk, lookOf(st), { hist: st.hist.map(r4), metrics: st.metrics }); done(); };
+    im.onerror = () => { S.looks.splice(S.looks.indexOf(lk), 1); done(); };
+    im.src = lk.thumb;
+  }
+}
 function persist() {
   const txt = JSON.stringify(S.looks); let ok = false;
   try { localStorage.setItem(STORE, txt); ok = true; } catch (e) { /* sin almacenamiento del navegador */ }
@@ -784,6 +930,7 @@ function renderLooks() {
     const mini = el('span', 'mini'); for (const h of lk.palette) { const i = el('i'); i.style.background = h; mini.appendChild(i); }
     b.append(im, nm, mini);
     b.addEventListener('click', () => {
+      if (lk.v !== 2) return;
       S.look = lk; S.activeLook = idx;
       const t = new Image(); t.onload = () => drawRef(t, t.naturalWidth, t.naturalHeight); t.src = lk.thumb;
       $('refBadge').textContent = 'Guardado'; $('refBadge').hidden = false;
@@ -805,9 +952,9 @@ $('lookName').addEventListener('keydown', e => { if (e.key === 'Enter') $('saveL
 
 /* ---------- Controles deslizantes ---------- */
 const RESET = { all: [], mix: [], grade: [] };
-function makeCtl(parent, id, label, min, def, set, group, dot) {
+function makeCtl(parent, id, label, min, def, set, group, dot, max) {
   const row = el('div', 'ctl'), lab = el('label'), out = el('output'), inp = el('input');
-  inp.type = 'range'; inp.id = id; inp.min = min; inp.max = 100; inp.value = def;
+  inp.type = 'range'; inp.id = id; inp.min = min; inp.max = max || 100; inp.value = def;
   lab.htmlFor = id; out.setAttribute('for', id);
   if (dot) { const d = el('i', 'dot'); d.style.background = dot; lab.appendChild(d); }
   lab.appendChild(document.createTextNode(label));
@@ -819,13 +966,13 @@ function makeCtl(parent, id, label, min, def, set, group, dot) {
   show(); row.append(lab, out, inp); parent.appendChild(row);
 }
 const LAYOUT = {
-  'c-look': [['amount', 'Cantidad', 0], ['color', 'Color', 0], ['tone', 'Luz y contraste', 0]],
+  'c-look': [['amount', 'Cantidad', 0, 150], ['color', 'Color', 0], ['tone', 'Luz y contraste', 0]],
   'c-light': [['exp', 'Exposición'], ['con', 'Contraste'], ['hi', 'Iluminaciones'], ['sh', 'Sombras'], ['wh', 'Blancos'], ['bl', 'Negros']],
   'c-color': [['temp', 'Temperatura'], ['tint', 'Matiz'], ['vib', 'Intensidad'], ['sat', 'Saturación']],
   'c-grade': [['bal', 'Equilibrio']],
   'c-fx': [['clar', 'Claridad'], ['vig', 'Viñeteado'], ['grain', 'Granulado', 0]]
 };
-for (const box in LAYOUT) for (const [k, label, min] of LAYOUT[box]) makeCtl($(box), 's-' + k, label, min === 0 ? 0 : -100, DEFS[k], n => { V[k] = n; }, box === 'c-grade' ? 'grade' : null);
+for (const box in LAYOUT) for (const [k, label, min, max] of LAYOUT[box]) makeCtl($(box), 's-' + k, label, min === 0 ? 0 : -100, DEFS[k], n => { V[k] = n; }, box === 'c-grade' ? 'grade' : null, null, max);
 for (const mode of ['hue', 'sat', 'lum']) BANDS.forEach((bd, i) => makeCtl($('g-' + mode), 'm-' + mode + '-' + i, bd[0], -100, 0, n => { MIX[mode][i] = n; }, 'mix', bd[2]));
 for (const mode of ['hue', 'sat', 'lum']) $('t-' + mode).addEventListener('click', () => {
   for (const m of ['hue', 'sat', 'lum']) { $('t-' + m).setAttribute('aria-selected', m === mode ? 'true' : 'false'); $('g-' + m).hidden = m !== mode; }
@@ -959,7 +1106,7 @@ $('saveBtn').addEventListener('click', async () => {
     const C = compile(t.stats, S.look);
     for (let y = 0; y < h; y += rows) {
       const hh = Math.min(rows, h - y), im = x.getImageData(0, y, w, hh);
-      process(C, toLab(im.data), im.data, w, hh, y, w, h, t); x.putImageData(im, 0, y);
+      process(C, toLab(im.data, SPACE), im.data, w, hh, y, w, h, t); x.putImageData(im, 0, y);
       btn.textContent = Math.round(100 * (y + hh) / h) + ' %'; await tick();
     }
     const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.93));
@@ -1027,8 +1174,8 @@ function sceneDay(w, h) {
 /* ---------- Arranque ---------- */
 if (window.matchMedia && window.matchMedia('(max-width: 1099px)').matches) $('sheet').open = false;
 if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) document.querySelectorAll('[data-touch]').forEach(n => { n.textContent = n.dataset.touch; });
-loadLooks();
-if (NAT) NAT.readLooks().then(txt => { try { const v = validLooks(JSON.parse(txt || 'null')); if (v.length) { S.looks = v; renderLooks(); } } catch (e) { /* sin looks guardados */ } });
+loadLooks(); upgradeLooks();
+if (NAT) NAT.readLooks().then(txt => { try { const v = validLooks(JSON.parse(txt || 'null')); if (v.length) { S.looks = v; renderLooks(); upgradeLooks(); } } catch (e) { /* sin looks guardados */ } });
 drawCurve(); resetWheels();
 setTarget(sceneDay(1200, 800), true);
 setRef(sceneDusk(1200, 800), 'Atardecer', true);
