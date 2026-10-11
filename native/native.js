@@ -54,6 +54,23 @@
     return compartir(uri);
   }
 
+  async function saveVideo(blob, nombre) {
+    var uri;
+    try { uri = await escribirTemporal(blob, nombre); } catch (e) { return "failed"; }
+    var M = plugin("Media");
+    if (M) { try { await M.saveVideo({ path: uri }); return "saved"; } catch (e) { /* sin permiso para Fotos: se ofrece compartir */ } }
+    return compartir(uri);
+  }
+  // Archivos de texto (el LUT .cube): se escriben y se abre la hoja de compartir para guardarlos donde se quiera
+  async function shareText(texto, nombre) {
+    var FS = plugin("Filesystem");
+    if (!FS) return "failed";
+    try {
+      var r = await FS.writeFile({ path: "robacolor/" + nombre, data: texto, directory: "CACHE", encoding: "utf8", recursive: true });
+      return compartir(r.uri);
+    } catch (e) { return "failed"; }
+  }
+
   /* 3. Mis looks: se guardan en un archivo de la app para que no dependan de la memoria del navegador */
   var LOOKS = { path: "robacolor-looks.json", directory: "LIBRARY", encoding: "utf8" };
   function readLooks() {
@@ -67,5 +84,5 @@
     return FS.writeFile({ path: LOOKS.path, directory: LOOKS.directory, encoding: LOOKS.encoding, data: texto }).catch(function () {});
   }
 
-  window.RobacolorNative = { savePhoto: savePhoto, readLooks: readLooks, storeLooks: storeLooks };
+  window.RobacolorNative = { savePhoto: savePhoto, saveVideo: saveVideo, shareText: shareText, readLooks: readLooks, storeLooks: storeLooks };
 })();

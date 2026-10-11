@@ -18,6 +18,8 @@
   --on-photo-fg:#ffffff;
   --knob-fill:#ffffff;
   --knob-ring:#111111;
+  --scope-bg:#0b0b0b;
+  --scope-line:#4a4a4a;
   --maxh:36vh;
   --refh:150px;
   --font-display:'Bricolage Grotesque','Avenir Next','Segoe UI',sans-serif;
@@ -87,6 +89,17 @@ button,input{font:inherit;color:inherit}
 .step{font-family:var(--font-data);font-size:11px;font-weight:500;width:20px;height:20px;border:1px solid var(--ink);border-radius:50%;display:inline-grid;place-items:center}
 .badge{font-family:var(--font-data);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;border:1px dashed var(--line-strong);color:var(--muted);padding:2px 7px;border-radius:3px}
 .spacer{flex:1}
+#vid{position:absolute;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none}
+.transport{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.tbtn{padding:7px 10px;font-size:13px;display:inline-flex;align-items:center}
+.tc{font-family:var(--font-data);font-size:13px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.seekwrap{flex:1;min-width:150px;display:block}
+.trimbar{display:block;height:3px;background:var(--line);border-radius:2px;position:relative}
+.trimbar i{position:absolute;top:0;bottom:0;background:var(--ink);border-radius:2px}
+.tabs.small button{font-size:12px;padding:6px 2px}
+.scope{width:100%;height:auto;display:block;background:var(--scope-bg);border-radius:3px}
+.wheel-wrap .ctl{width:100%}
+.tools-links{display:flex;gap:14px;flex-wrap:wrap}
 
 .label{font-family:var(--font-data);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0}
 .hint{color:var(--muted);font-size:13px;margin:0}
@@ -206,7 +219,7 @@ footer p{margin:0;max-width:70ch}
 
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:4px;font-size:14px;font-weight:500;max-width:calc(100% - 32px);z-index:30}
 .sheet-out{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;padding:calc(18px + env(safe-area-inset-top,0px)) 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:14px}
-.sheet-out img{max-width:100%;max-height:72vh;border-radius:3px}
+.sheet-out img,.sheet-out video{max-width:100%;max-height:72vh;border-radius:3px}
 .sheet-out p{margin:0;max-width:52ch;text-align:center}
 </style>
 
@@ -215,7 +228,7 @@ footer p{margin:0;max-width:70ch}
 <div class="wrap">
   <header class="top">
     <h1>Robacolor</h1>
-    <p>Copia los colores de una foto que te gusta, aplícalos a la tuya y termina el revelado.</p>
+    <p>Copia los colores de una foto que te gusta y aplícalos a tu foto o a tu vídeo.</p>
   </header>
 
   <main class="bench">
@@ -253,23 +266,33 @@ footer p{margin:0;max-width:70ch}
 
       <section class="panel" id="p-stage" aria-labelledby="h-tgt">
         <div class="panel-head">
-          <h2 id="h-tgt"><span class="step">2</span>Tu foto</h2>
+          <h2 id="h-tgt"><span class="step">2</span>Tu foto o vídeo</h2>
           <span class="badge" id="tgtBadge">Ejemplo</span>
           <span class="spacer"></span>
-          <button class="btn" type="button" id="tgtBtn">Subir tu foto</button>
-          <button class="btn primary" type="button" id="saveBtn">Guardar foto</button>
-          <input class="sr" type="file" id="tgtFile" accept="image/*" tabindex="-1" aria-hidden="true">
+          <button class="btn" type="button" id="tgtBtn" aria-label="Subir una foto o un vídeo">Subir</button>
+          <button class="btn primary" type="button" id="saveBtn" aria-label="Guardar el resultado">Guardar</button>
+          <input class="sr" type="file" id="tgtFile" accept="image/*,video/*" tabindex="-1" aria-hidden="true">
         </div>
         <div class="mat" id="tgtDrop">
           <div class="frame" id="frame">
             <canvas id="after" role="img" aria-label="Tu foto con el look aplicado"></canvas>
             <canvas id="before" aria-hidden="true"></canvas>
+            <canvas id="gl" role="img" aria-label="Tu vídeo con el look aplicado" hidden></canvas>
+            <video id="vid" playsinline preload="auto" tabindex="-1" aria-hidden="true"></video>
             <input class="split" type="range" id="split" min="0" max="100" step="0.1" value="50" aria-label="Comparar antes y después">
             <div class="handle"></div>
             <span class="tag l">Antes</span>
             <span class="tag r">Después</span>
           </div>
         </div>
+        <div class="transport" id="transport" hidden>
+          <button class="btn tbtn" type="button" id="playBtn" aria-label="Reproducir o pausar"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path id="playIcon" d="M4 2.5v11l9-5.5z" fill="currentColor"></path></svg></button>
+          <output class="tc" id="tc" aria-label="Código de tiempo">00:00:00:00</output>
+          <div class="ctl seekwrap"><input type="range" id="seek" min="0" max="1000" step="1" value="0" aria-label="Posición en el vídeo"><span class="trimbar"><i id="trimFill"></i></span></div>
+          <button class="btn tbtn" type="button" id="inBtn">Entrada</button>
+          <button class="btn tbtn" type="button" id="outBtn">Salida</button>
+        </div>
+        <p class="hint" id="trimInfo" hidden></p>
         <p class="hint">Arrastra la línea para comparar el antes y el después.</p>
       </section>
     </div>
@@ -279,11 +302,20 @@ footer p{margin:0;max-width:70ch}
         <div class="panel-head">
           <h2 id="h-adj"><span class="step">3</span>Ajustes</h2>
           <span class="spacer"></span>
-          <button class="link" type="button" id="resetBtn">Restablecer todo</button>
+          <span class="tools-links"><button class="link" type="button" id="lutBtn">Exportar LUT</button><button class="link" type="button" id="resetBtn">Restablecer todo</button></span>
         </div>
         <div class="block">
-          <svg class="histo" viewBox="0 0 256 64" preserveAspectRatio="none" role="img" aria-label="Histograma de la foto editada"><path id="liveHisto" d="" fill="currentColor" fill-opacity=".8"></path></svg>
-          <div class="axis"><span>Sombras</span><span>Histograma del resultado</span><span>Luces</span></div>
+          <div class="tabs small" role="tablist" aria-label="Monitor de señal del resultado">
+            <button type="button" role="tab" id="sc-hist" aria-selected="true">Histograma</button>
+            <button type="button" role="tab" id="sc-wave" aria-selected="false">Onda</button>
+            <button type="button" role="tab" id="sc-par" aria-selected="false">Parade</button>
+            <button type="button" role="tab" id="sc-vec" aria-selected="false">Vector</button>
+          </div>
+          <div class="block" id="scopeHist">
+            <svg class="histo" viewBox="0 0 256 64" preserveAspectRatio="none" role="img" aria-label="Histograma del resultado"><path id="liveHisto" d="" fill="currentColor" fill-opacity=".8"></path></svg>
+            <div class="axis"><span>Sombras</span><span>Luces</span></div>
+          </div>
+          <canvas class="scope" id="scope" width="384" height="192" role="img" aria-label="Monitor de señal del resultado" hidden></canvas>
         </div>
       </div>
 
@@ -329,20 +361,21 @@ footer p{margin:0;max-width:70ch}
         </div>
       </details>
       <details class="sec">
-        <summary>Gradación de color</summary>
+        <summary>Ruedas de color</summary>
         <div class="sec-body">
           <div class="wheels">
-            <div class="wheel-wrap"><div class="wheel" id="w-sh" tabindex="0" role="group" aria-label="Tinte de las sombras. Flechas izquierda y derecha cambian el tono; arriba y abajo, la saturación."><i class="knob"></i></div><span class="w-name">Sombras</span><span class="w-val" id="wv-sh">0</span></div>
-            <div class="wheel-wrap"><div class="wheel" id="w-mid" tabindex="0" role="group" aria-label="Tinte de los medios tonos. Flechas izquierda y derecha cambian el tono; arriba y abajo, la saturación."><i class="knob"></i></div><span class="w-name">Medios</span><span class="w-val" id="wv-mid">0</span></div>
-            <div class="wheel-wrap"><div class="wheel" id="w-hi" tabindex="0" role="group" aria-label="Tinte de las luces. Flechas izquierda y derecha cambian el tono; arriba y abajo, la saturación."><i class="knob"></i></div><span class="w-name">Luces</span><span class="w-val" id="wv-hi">0</span></div>
+            <div class="wheel-wrap"><div class="wheel" id="w-sh" tabindex="0" role="group" aria-label="Color de Lift (sombras). Flechas izquierda y derecha cambian el tono; arriba y abajo, la saturación."><i class="knob"></i></div><span class="w-name">Lift</span><span class="w-val" id="wv-sh">0</span><div class="ctl"><input type="range" id="wm-sh" min="-100" max="100" value="0" aria-label="Nivel de Lift (sombras)"></div></div>
+            <div class="wheel-wrap"><div class="wheel" id="w-mid" tabindex="0" role="group" aria-label="Color de Gamma (medios). Flechas izquierda y derecha cambian el tono; arriba y abajo, la saturación."><i class="knob"></i></div><span class="w-name">Gamma</span><span class="w-val" id="wv-mid">0</span><div class="ctl"><input type="range" id="wm-mid" min="-100" max="100" value="0" aria-label="Nivel de Gamma (medios)"></div></div>
+            <div class="wheel-wrap"><div class="wheel" id="w-hi" tabindex="0" role="group" aria-label="Color de Gain (luces). Flechas izquierda y derecha cambian el tono; arriba y abajo, la saturación."><i class="knob"></i></div><span class="w-name">Gain</span><span class="w-val" id="wv-hi">0</span><div class="ctl"><input type="range" id="wm-hi" min="-100" max="100" value="0" aria-label="Nivel de Gain (luces)"></div></div>
           </div>
+          <p class="hint">Lift actúa en las sombras, Gamma en los medios y Gain en las luces. La rueda da el color; el control de debajo, el nivel.</p>
           <div class="ctls" id="c-grade"></div>
-          <button class="link" type="button" id="gradeReset">Restablecer gradación</button>
+          <button class="link" type="button" id="gradeReset">Restablecer ruedas</button>
         </div>
       </details>
       <details class="sec">
         <summary>Efectos</summary>
-        <div class="sec-body"><div class="ctls" id="c-fx"></div></div>
+        <div class="sec-body"><div class="ctls" id="c-fx"></div><p class="hint" id="fxNote" hidden>En vídeo no se aplica la claridad.</p></div>
       </details>
       <div class="sec"><div class="sec-body" style="padding-top:12px"><p class="hint" data-touch="Doble toque en un control para devolverlo a su valor inicial.">Doble clic en un control para devolverlo a su valor inicial.</p></div></div>
     </section>
@@ -365,7 +398,8 @@ footer p{margin:0;max-width:70ch}
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <div class="sheet-out" id="out" hidden>
   <img id="outImg" alt="Foto editada">
-  <p>Mantén pulsada la imagen (o haz clic derecho) y elige «Guardar imagen».</p>
+  <video id="outVid" controls playsinline hidden></video>
+  <p id="outMsg">Mantén pulsada la imagen (o haz clic derecho) y elige «Guardar imagen».</p>
   <button class="btn primary" type="button" id="outClose">Cerrar</button>
 </div>
 
@@ -567,7 +601,7 @@ const DEFS = { amount: 100, color: 100, tone: 100, exp: 0, con: 0, hi: 0, sh: 0,
 const V = Object.assign({}, DEFS);
 const BANDS = [['Rojo', 25, '#d64545'], ['Naranja', 55, '#e08a3c'], ['Amarillo', 100, '#d9c23a'], ['Verde', 142, '#4fa35a'], ['Aguamarina', 195, '#3fb5b0'], ['Azul', 255, '#3f6fd1'], ['Púrpura', 300, '#7d55c7'], ['Magenta', 345, '#c94fa8']];
 const MIX = { hue: new Array(8).fill(0), sat: new Array(8).fill(0), lum: new Array(8).fill(0) };
-const GR = { sh: { h: 0, s: 0 }, mid: { h: 0, s: 0 }, hi: { h: 0, s: 0 } };
+const GR = { sh: { h: 0, s: 0, l: 0 }, mid: { h: 0, s: 0, l: 0 }, hi: { h: 0, s: 0, l: 0 } }; // ruedas Lift / Gamma / Gain: tono, saturación y nivel
 let CURVE = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
 const S = { look: null, tgt: null, looks: [], activeLook: -1, tgtName: '' };
 
@@ -651,11 +685,13 @@ function compile(T, R) {
 
   // 2) Luz: exposición, contraste, iluminaciones, sombras, blancos, negros y curva
   const eM = Math.pow(2, v('exp') * 2 / 3), kc = Math.pow(2, v('con') * 1.2), hi = v('hi'), sh = v('sh'), wh = v('wh'), bl = v('bl');
-  const cv = curveLUT(CURVE), TL = new Float32Array(N + 1), CF = new Float32Array(N);
+  const cv = curveLUT(CURVE), TL = new Float32Array(N + 1), CF = new Float32Array(N), mL = GR.sh.l / 100, mG = GR.mid.l / 100, mH = GR.hi.l / 100;
   for (let i = 0, prev = 0; i < N; i++) {
     const Lc = (i + 0.5) / N; let t = Math.min(1, Lc * eM);
     if (kc !== 1) { const p = Math.pow(t, kc), q = Math.pow(1 - t, kc); t = p / (p + q); }
     t += hi * 0.18 * ss(0.35, 0.75, t) * (1 - 0.7 * ss(0.88, 1, t)) + sh * 0.18 * (1 - ss(0.25, 0.65, t)) * (0.3 + 0.7 * ss(0, 0.12, t)) + wh * 0.15 * ss(0.55, 1, t) + bl * 0.15 * (1 - ss(0, 0.45, t));
+    // Niveles de las ruedas: Gain escala desde el negro, Lift levanta o hunde las sombras y Gamma mueve los medios
+    if (mL || mG || mH) { t = clamp(t * (1 + mH * 0.3) + mL * 0.15 * (1 - t) * (1 - t), 0, 1); if (mG) t = Math.pow(t, Math.pow(2, -mG * 0.7)); }
     t = clamp(t, 0, 1); if (t < prev) t = prev; prev = t;
     const x = t * CN, xi = Math.min(CN - 1, x | 0);
     t = cv[xi] + (cv[xi + 1] - cv[xi]) * (x - xi);
@@ -694,7 +730,7 @@ function hash(x, y) { let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263)
 function process(C, lab, out, w, h, y0, W, H, tg) {
   const { L, A, B } = lab, { LO, OA, OB, LC, LS, LT, lOn, TL, CF, RC, RS, HS, HL, GA, GB, hOn, gOn } = C;
   const bw = tg.pw, bh = tg.ph, same = W === bw && H === bh, sx = bw / W, sy = bh / H, M = M_OUT[tg.space || 'srgb'];
-  const blur = C.clar ? tg.blur : null, clar = C.clar * 1.2;
+  const blur = C.clar ? tg.blur : null, clar = C.clar * 1.2, fl = tg.float === true;
   const satF = C.sat, vib = C.vib, tA = C.tA, tB = C.tB, vig = C.vig * 0.6, gr = C.grain * 0.09;
   const dx2 = new Float32Array(w);
   for (let x = 0; x < w; x++) { const t = (x + 0.5) / W * 2 - 1; dx2[x] = t * t; }
@@ -766,11 +802,28 @@ function process(C, lab, out, w, h, y0, W, H, tg) {
         }
       }
       // Tramado: un ruido de menos de un nivel antes de redondear a 8 bits evita las bandas en los degradados
+      if (fl) { out[j] = ENC[((r < 0 ? 0 : r > 1 ? 1 : r) * EN + 0.5) | 0] / 255; out[j + 1] = ENC[((g < 0 ? 0 : g > 1 ? 1 : g) * EN + 0.5) | 0] / 255; out[j + 2] = ENC[((bb < 0 ? 0 : bb > 1 ? 1 : bb) * EN + 0.5) | 0] / 255; out[j + 3] = 1; continue; }
       if (!same) nz = hash(x, Y);
       const e0 = ENC[((r < 0 ? 0 : r > 1 ? 1 : r) * EN + 0.5) | 0] + nz, e1 = ENC[((g < 0 ? 0 : g > 1 ? 1 : g) * EN + 0.5) | 0] + nz, e2 = ENC[((bb < 0 ? 0 : bb > 1 ? 1 : bb) * EN + 0.5) | 0] + nz;
       out[j] = e0; out[j + 1] = e1; out[j + 2] = e2; out[j + 3] = 255; // el array redondea y recorta a 0..255
     }
   }
+}
+
+/* Tabla 3D (LUT): todo el revelado que depende solo del color, sin viñeteado, grano ni claridad.
+   Sirve para aplicar el look a vídeo en la GPU y para exportarlo como archivo .cube. El rojo es el eje más rápido. */
+const LATTICE = {};
+function latticeLab(n) {
+  if (LATTICE[n]) return LATTICE[n];
+  const o = newLab(n * n * n), lin = new Float32Array(n);
+  for (let i = 0; i < n; i++) lin[i] = sdec(i / (n - 1));
+  for (let b = 0, i = 0; b < n; b++) for (let g = 0; g < n; g++) for (let r = 0; r < n; r++, i++) labFromLinear(lin[r], lin[g], lin[b], M_IN.srgb, o, i);
+  return (LATTICE[n] = o);
+}
+function lut3d(T, R, n) {
+  const C = Object.assign(compile(T, R), { vig: 0, grain: 0, clar: 0 }), lab = latticeLab(n), out = new Float32Array(lab.n * 4);
+  process(C, lab, out, lab.n, 1, 0, lab.n, 1, { pw: lab.n, ph: 1, blur: null, space: 'srgb', float: true });
+  return out;
 }
 
 // Desenfoque amplio de la luminosidad, base de la claridad (tres pasadas de caja)
@@ -827,6 +880,7 @@ function drawRef(src, w, h) {
   ctx2d(c).drawImage(src, 0, 0, cw, ch);
 }
 function setTarget(src, isExample) {
+  videoOff();
   if (S.tgt && S.tgt.src !== src) release(S.tgt.src);
   const [w, h] = dims(src), [pw, ph] = fit(w, h, PREV), b = $('before'), a = $('after');
   b.width = a.width = pw; b.height = a.height = ph;
@@ -855,14 +909,64 @@ function schedule(full) {
 }
 function render(fast) {
   const t = S.tgt; if (!S.look || !t) return;
+  if (t.kind === 'video') { VID.dirty = true; VID.n = fast ? 33 : 65; drawVideo(true); return; } // tabla gruesa mientras se arrastra, fina al soltar
   if (V.clar && !t.blur) t.blur = blurMap(t.lab.L, t.pw, t.ph);
   const C = compile(t.stats, S.look), ax = ctx2d($('after')); let d;
   if (fast) { const s = t.small; process(C, s.lab, s.out.data, s.w, s.h, 0, s.w, s.h, t); s.x.putImageData(s.out, 0, 0); ax.drawImage(s.c, 0, 0, t.pw, t.ph); d = s.out.data; }
   else { process(C, t.lab, t.out.data, t.pw, t.ph, 0, t.pw, t.ph, t); ax.putImageData(t.out, 0, 0); d = t.out.data; }
-  const bins = new Array(64).fill(0), step = Math.max(1, Math.floor(d.length / 4 / 24000)) * 4;
-  for (let i = 0; i < d.length; i += step) bins[Math.min(63, (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 4 | 0)]++;
-  $('liveHisto').setAttribute('d', histPath(bins, 256, 64));
+  if (fast) drawScopes(d, t.small.w, t.small.h); else drawScopes(d, t.pw, t.ph);
 }
+
+/* ---------- Monitores de señal: histograma, forma de onda, parade RGB y vectorscopio ---------- */
+let SCOPE = 'hist';
+function drawScopes(d, w, h) {
+  const sx = Math.max(1, Math.round(w / 256)), sy = Math.max(1, Math.round(h / 144));
+  if (SCOPE === 'hist') {
+    const bins = new Array(64).fill(0);
+    for (let y = 0; y < h; y += sy) for (let x = 0, i = y * w * 4; x < w; x += sx, i += sx * 4) bins[Math.min(63, (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 4 | 0)]++;
+    $('liveHisto').setAttribute('d', histPath(bins, 256, 64)); return;
+  }
+  const cv = $('scope'), cx = cv.getContext('2d'), W = cv.width, H = cv.height, im = cx.createImageData(W, H), o = im.data, n = W * H;
+  const rows = Math.ceil(h / sy), put = (q, r, g, b) => { o[q] = r; o[q + 1] = g; o[q + 2] = b; };
+  for (let q = 0; q < n * 4; q += 4) { o[q] = o[q + 1] = o[q + 2] = 11; o[q + 3] = 255; }
+  if (SCOPE === 'vec') {
+    // Vectorscopio: cada píxel se sitúa por su croma (Cb, Cr de Rec. 709); el centro es el gris
+    const acc = new Float32Array(n * 4), R = H / 2, X0 = W / 2, K = R * 1.9;
+    for (let y = 0; y < h; y += sy) for (let x = 0, i = y * w * 4; x < w; x += sx, i += sx * 4) {
+      const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255, cb = -0.1146 * r - 0.3854 * g + 0.5 * b, cr = 0.5 * r - 0.4542 * g - 0.0458 * b;
+      const px = Math.round(X0 + cb * K), py = Math.round(R - cr * K); if (px < 0 || px >= W || py < 0 || py >= H) continue;
+      const q = (py * W + px) * 4; acc[q] += r; acc[q + 1] += g; acc[q + 2] += b; acc[q + 3]++;
+    }
+    const tau = Math.max(1, rows * 0.05);
+    for (let q = 0; q < n * 4; q += 4) { const c = acc[q + 3]; if (!c) continue; const k = Math.min(1, c / tau) ** 0.5, mx = Math.max(acc[q], acc[q + 1], acc[q + 2], 1e-6); put(q, 30 + 225 * k * (0.35 + 0.65 * acc[q] / mx), 30 + 225 * k * (0.35 + 0.65 * acc[q + 1] / mx), 30 + 225 * k * (0.35 + 0.65 * acc[q + 2] / mx)); }
+    cx.putImageData(im, 0, 0);
+    cx.strokeStyle = getComputedStyle(cv).getPropertyValue('--scope-line') || '#4a4a4a'; cx.lineWidth = 1;
+    cx.beginPath(); cx.arc(X0, R, R * 0.95, 0, Math.PI * 2); cx.moveTo(X0 - R * 0.95, R); cx.lineTo(X0 + R * 0.95, R); cx.moveTo(X0, R * 0.05); cx.lineTo(X0, R * 1.95);
+    cx.moveTo(X0, R); cx.lineTo(X0 + Math.cos(123 * Math.PI / 180) * R * 0.95, R - Math.sin(123 * Math.PI / 180) * R * 0.95); // línea de los tonos de piel
+    for (const [r, g, b] of [[.75, 0, 0], [.75, .75, 0], [0, .75, 0], [0, .75, .75], [0, 0, .75], [.75, 0, .75]]) { const cb = -0.1146 * r - 0.3854 * g + 0.5 * b, cr = 0.5 * r - 0.4542 * g - 0.0458 * b; cx.rect(X0 + cb * K - 4, R - cr * K - 4, 8, 8); }
+    cx.stroke(); return;
+  }
+  // Forma de onda (luminancia) o parade (rojo, verde y azul por separado): columna = posición horizontal, altura = nivel
+  const par = SCOPE === 'par', acc = new Uint16Array(n * (par ? 3 : 1)), PW = par ? Math.floor(W / 3) : W;
+  for (let y = 0; y < h; y += sy) for (let x = 0, i = y * w * 4; x < w; x += sx, i += sx * 4) {
+    const col = Math.min(PW - 1, Math.floor(x * PW / w));
+    if (par) for (let c = 0; c < 3; c++) acc[((H - 1 - Math.round(d[i + c] * (H - 1) / 255)) * W + c * PW + col) * 3 + c]++;
+    else acc[(H - 1 - Math.round((0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) * (H - 1) / 255)) * W + col]++;
+  }
+  const tau = Math.max(1, rows * (w / sx) / PW * 0.12);
+  for (let q = 0, a = 0; q < n * 4; q += 4, a += par ? 3 : 1) {
+    if (par) { const r = acc[a], g = acc[a + 1], b = acc[a + 2]; if (r) put(q, 60 + 195 * Math.min(1, r / tau) ** 0.6, 30, 30); else if (g) put(q, 30, 60 + 195 * Math.min(1, g / tau) ** 0.6, 30); else if (b) put(q, 40, 60, 80 + 175 * Math.min(1, b / tau) ** 0.6); }
+    else if (acc[a]) { const k = 50 + 205 * Math.min(1, acc[a] / tau) ** 0.6; put(q, k, k, k); }
+  }
+  cx.putImageData(im, 0, 0);
+  cx.strokeStyle = getComputedStyle(cv).getPropertyValue('--scope-line') || '#4a4a4a'; cx.lineWidth = 1; cx.globalAlpha = 0.6; cx.beginPath();
+  for (const f of [0, 0.25, 0.5, 0.75, 1]) { const y = Math.round((H - 1) * (1 - f)) + 0.5; cx.moveTo(0, y); cx.lineTo(W, y); }
+  cx.stroke(); cx.globalAlpha = 1;
+}
+for (const k of ['hist', 'wave', 'par', 'vec']) $('sc-' + k).addEventListener('click', () => {
+  SCOPE = k; for (const j of ['hist', 'wave', 'par', 'vec']) $('sc-' + j).setAttribute('aria-selected', j === k ? 'true' : 'false');
+  $('scopeHist').hidden = k !== 'hist'; $('scope').hidden = k === 'hist'; VID.lastScope = 0; schedule(true);
+});
 function histPath(bins, W, H) {
   const mx = Math.max(...bins) || 1, bwid = W / bins.length; let d = 'M0,' + H;
   bins.forEach((v, k) => { d += ' L' + ((k + 0.5) * bwid).toFixed(1) + ',' + (H - H * 0.94 * Math.sqrt(v / mx)).toFixed(1); });
@@ -1060,7 +1164,8 @@ for (const k of ['sh', 'mid', 'hi']) {
     e.preventDefault(); drawWheel(k); schedule();
   });
 }
-const resetWheels = () => { for (const k of ['sh', 'mid', 'hi']) { GR[k].h = 0; GR[k].s = 0; drawWheel(k); } };
+for (const k of ['sh', 'mid', 'hi']) { const m = $('wm-' + k); m.addEventListener('input', () => { GR[k].l = +m.value; schedule(); }); onDouble(m, () => { m.value = 0; GR[k].l = 0; schedule(true); }); }
+const resetWheels = () => { for (const k of ['sh', 'mid', 'hi']) { GR[k].h = 0; GR[k].s = 0; GR[k].l = 0; $('wm-' + k).value = 0; drawWheel(k); } };
 $('gradeReset').addEventListener('click', () => { resetWheels(); RESET.grade.forEach(f => f()); schedule(); });
 $('resetBtn').addEventListener('click', () => { RESET.all.forEach(f => f()); resetWheels(); resetCurve(); schedule(true); toast('Ajustes restablecidos'); });
 
@@ -1080,7 +1185,8 @@ async function openFile(file, then) {
 }
 const baseName = f => f.name.replace(/\.[^.]+$/, '').slice(0, 40);
 wire('refBtn', 'refFile', 'refDrop', f => openFile(f, src => { setRef(src, baseName(f) || 'Look', false); release(src); toast('Look extraído de la referencia'); }));
-wire('tgtBtn', 'tgtFile', 'tgtDrop', f => openFile(f, src => { S.tgtName = baseName(f); setTarget(src, false); }));
+const isVideo = f => /^video\//.test(f.type || '') || /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(f.name || '');
+wire('tgtBtn', 'tgtFile', 'tgtDrop', f => { if (isVideo(f)) { S.tgtName = baseName(f); setVideo(f); } else openFile(f, src => { S.tgtName = baseName(f); setTarget(src, false); }); });
 window.addEventListener('dragover', e => e.preventDefault());
 window.addEventListener('drop', e => e.preventDefault());
 
@@ -1099,6 +1205,7 @@ const slug = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').repla
 const tick = () => new Promise(r => setTimeout(r, 0));
 $('saveBtn').addEventListener('click', async () => {
   const t = S.tgt; if (!S.look || !t) return;
+  if (t.kind === 'video') { exportVideo($('saveBtn')); return; }
   const btn = $('saveBtn'); btn.disabled = true;
   try {
     const [w, h] = fit(t.w, t.h, 4096), [c, x] = canvasOf(t.src, w, h), rows = 96;
@@ -1124,11 +1231,213 @@ $('saveBtn').addEventListener('click', async () => {
       try { await dl.save({ filename, data: blob }); done = true; toast('Foto guardada · ' + w + ' × ' + h + ' px'); }
       catch (e) { if (e && (e.code === 'declined' || e.code === 'rate_limited')) { done = true; toast(e.code === 'declined' ? 'Guardado cancelado' : 'Espera un momento y vuelve a intentarlo'); } }
     }
-    if (!done) { $('outImg').src = URL.createObjectURL(blob); $('out').hidden = false; $('outClose').focus(); }
+    if (!done) showOut(blob, false);
   } catch (e) { toast('No se pudo generar la foto. Prueba con una imagen más pequeña.'); }
-  btn.textContent = 'Guardar foto'; btn.disabled = false;
+  btn.textContent = 'Guardar'; btn.disabled = false;
 });
-$('outClose').addEventListener('click', () => { const im = $('outImg'); URL.revokeObjectURL(im.src); im.removeAttribute('src'); $('out').hidden = true; $('saveBtn').focus(); });
+// Si no hay otra forma de guardar, se enseña el resultado para guardarlo a mano
+function showOut(blob, video) {
+  const im = $('outImg'), vd = $('outVid'), url = URL.createObjectURL(blob);
+  im.hidden = video; vd.hidden = !video; (video ? vd : im).src = url;
+  $('outMsg').textContent = video ? 'Mantén pulsado el vídeo (o haz clic derecho) y elige «Guardar vídeo».' : 'Mantén pulsada la imagen (o haz clic derecho) y elige «Guardar imagen».';
+  $('out').hidden = false; $('outClose').focus();
+}
+$('outClose').addEventListener('click', () => { for (const m of [$('outImg'), $('outVid')]) { if (m.src) URL.revokeObjectURL(m.src); m.removeAttribute('src'); } $('outVid').load(); $('out').hidden = true; $('saveBtn').focus(); });
+
+/* ---------- Vídeo: el look se aplica en la GPU con una tabla 3D, fotograma a fotograma ---------- */
+const VID = { on: false, el: $('vid'), cv: $('gl'), gl: null, u: null, n: 33, dirty: true, in: 0, out: 0, dur: 0, fps: 30, rec: null, stop: false, frame: 0, lastScope: 0, url: null, sc: null, ac: null, node: null, lastT: -1 };
+const FRAG = `#version 300 es
+precision highp float; precision highp sampler3D;
+uniform sampler2D uVid; uniform sampler3D uLut; uniform float uSplit, uVig, uGrain, uSeed, uN;
+in vec2 uv; out vec4 o;
+float rnd(vec2 q) { return fract(sin(dot(q, vec2(12.9898, 78.233)) + uSeed) * 43758.5453) - 0.5; }
+void main() {
+  vec3 c = texture(uVid, uv).rgb;
+  vec3 g = texture(uLut, c * ((uN - 1.0) / uN) + 0.5 / uN).rgb;
+  if (uVig != 0.0) { vec2 d = uv * 2.0 - 1.0; float d2 = dot(d, d) * 0.5; float m = max(0.0, 1.0 + uVig * d2 * sqrt(d2)); g = pow(pow(g, vec3(2.2)) * m * m * m, vec3(1.0 / 2.2)); }
+  if (uGrain > 0.0) { float l = dot(g, vec3(0.2126, 0.7152, 0.0722)); g += uGrain * rnd(gl_FragCoord.xy) * (0.4 + 0.6 * (1.0 - abs(2.0 * l - 1.0))); }
+  o = vec4(uv.x < uSplit ? c : clamp(g, 0.0, 1.0), 1.0);
+}`;
+function glInit() {
+  if (VID.gl) return true;
+  try {
+    const gl = VID.cv.getContext('webgl2', { antialias: false, premultipliedAlpha: false });
+    if (!gl) return false;
+    const sh = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x) || 'shader'); return x; };
+    const pr = gl.createProgram();
+    gl.attachShader(pr, sh(gl.VERTEX_SHADER, `#version 300 es
+in vec2 p; out vec2 uv; void main() { uv = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }`));
+    gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FRAG)); gl.linkProgram(pr);
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error('link');
+    gl.useProgram(pr);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_3D, gl.createTexture());
+    for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_3D, k, v);
+    const U = n => gl.getUniformLocation(pr, n);
+    gl.uniform1i(U('uVid'), 0); gl.uniform1i(U('uLut'), 1);
+    VID.u = { split: U('uSplit'), vig: U('uVig'), grain: U('uGrain'), seed: U('uSeed'), n: U('uN') }; VID.gl = gl;
+    return true;
+  } catch (e) { return false; }
+}
+// Pinta el fotograma actual. La tabla 3D solo se recalcula cuando cambia el look o algún ajuste.
+function drawVideo(force) {
+  const gl = VID.gl, v = VID.el, t = S.tgt;
+  if (!gl || !VID.on || !t || t.kind !== 'video' || v.readyState < 2) return;
+  if (VID.dirty) {
+    const data = lut3d(t.stats, S.look, VID.n);
+    gl.activeTexture(gl.TEXTURE1); gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA16F, VID.n, VID.n, VID.n, 0, gl.RGBA, gl.FLOAT, data);
+    gl.uniform1f(VID.u.n, VID.n); gl.uniform1f(VID.u.vig, V.vig / 100 * 0.6); gl.uniform1f(VID.u.grain, V.grain / 100 * 0.1);
+    VID.dirty = false;
+  }
+  gl.activeTexture(gl.TEXTURE0); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.viewport(0, 0, VID.cv.width, VID.cv.height); gl.uniform1f(VID.u.seed, (VID.frame = (VID.frame + 1) % 997) * 0.37);
+  const now = performance.now(), split = VID.rec ? 0 : +$('split').value / 100;
+  if (!VID.rec && (force || now - VID.lastScope > 140)) { // los monitores miden el resultado completo, sin la mitad «antes»; al grabar se apagan para no perder fotogramas
+    VID.lastScope = now; gl.uniform1f(VID.u.split, 0); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    if (!VID.sc) { const c = document.createElement('canvas'); c.width = 256; c.height = 144; VID.sc = c.getContext('2d', { willReadFrequently: true }); }
+    VID.sc.drawImage(VID.cv, 0, 0, 256, 144); drawScopes(VID.sc.getImageData(0, 0, 256, 144).data, 256, 144);
+  }
+  gl.uniform1f(VID.u.split, split); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  if (v.currentTime !== VID.lastT) { VID.lastT = v.currentTime; $('tc').textContent = timecode(v.currentTime); if (VID.dur) $('seek').value = Math.round(v.currentTime / VID.dur * 1000); }
+}
+const two = n => String(Math.floor(n)).padStart(2, '0');
+const timecode = t => two(t / 3600) + ':' + two(t / 60 % 60) + ':' + two(t % 60) + ':' + two((t % 1) * VID.fps + 1e-3);
+const once = (node, ev) => new Promise((res, rej) => { const ok = () => { node.removeEventListener('error', ko); res(); }, ko = () => { node.removeEventListener(ev, ok); rej(new Error(ev)); }; node.addEventListener(ev, ok, { once: true }); node.addEventListener('error', ko, { once: true }); });
+function seekTo(t) { const v = VID.el; if (Math.abs(v.currentTime - t) < 1e-3) return Promise.resolve(); const p = once(v, 'seeked'); v.currentTime = t; return p; }
+function trimUI() {
+  const a = VID.in / VID.dur * 100, b = VID.out / VID.dur * 100, f = $('trimFill'); f.style.left = a + '%'; f.style.width = Math.max(0, b - a) + '%';
+  const whole = VID.in < 0.01 && VID.out > VID.dur - 0.01, info = $('trimInfo'); info.hidden = whole;
+  info.textContent = 'Se guardará el tramo de ' + timecode(VID.in) + ' a ' + timecode(VID.out) + ' (' + (VID.out - VID.in).toFixed(1).replace('.', ',') + ' s).';
+}
+function videoOff() {
+  if (!VID.on) return;
+  VID.on = false; VID.stop = true; const v = VID.el; v.pause(); v.removeAttribute('src'); v.load();
+  if (VID.url) { URL.revokeObjectURL(VID.url); VID.url = null; }
+  VID.cv.hidden = true; $('after').hidden = false; $('before').hidden = false; $('transport').hidden = true; $('trimInfo').hidden = true; $('fxNote').hidden = true;
+}
+async function setVideo(file) {
+  if (!glInit()) { toast('Este dispositivo no puede aplicar el look a un vídeo'); return; }
+  const v = VID.el, btn = $('tgtBtn'); btn.disabled = true;
+  try {
+    v.pause(); if (VID.url) URL.revokeObjectURL(VID.url);
+    VID.url = URL.createObjectURL(file); v.muted = true; v.src = VID.url; v.load();
+    await once(v, 'loadedmetadata');
+    try { await v.play(); } catch (e) { /* hay navegadores que no dejan reproducir sin un toque; el primer fotograma llega igual */ }
+    v.pause(); v.muted = false;
+    if (!(v.videoWidth > 1 && v.videoHeight > 1 && isFinite(v.duration) && v.duration > 0)) throw new Error('video');
+    const [cw, ch] = fit(v.videoWidth, v.videoHeight, 1920);
+    VID.cv.width = cw; VID.cv.height = ch; VID.dur = v.duration; VID.in = 0; VID.out = v.duration; VID.fps = 30; VID.lastT = -1;
+    await seekTo(Math.min(v.duration * 0.25, 2)); if (v.readyState < 2) await once(v, 'loadeddata');
+    // El look se ajusta con las medidas de un fotograma representativo (como con una foto)
+    const [aw, ah] = fit(cw, ch, 640), [, ax] = canvasOf(v, aw, ah), st = analyze(toLab(ax.getImageData(0, 0, aw, ah).data, SPACE));
+    if (S.tgt) release(S.tgt.src);
+    S.tgt = { kind: 'video', src: null, w: cw, h: ch, pw: cw, ph: ch, stats: st, space: 'srgb' };
+    $('frame').style.setProperty('--ar', cw / ch);
+    $('after').hidden = true; $('before').hidden = true; VID.cv.hidden = false; $('transport').hidden = false; $('fxNote').hidden = false;
+    $('tgtBadge').textContent = 'Vídeo'; $('tgtBadge').hidden = false;
+    $('cHist').setAttribute('d', histPath(st.hist, 100, 100));
+    VID.on = true; VID.dirty = true; VID.stop = false; trimUI();
+    await seekTo(0); drawVideo(true);
+    toast('Vídeo cargado · ' + v.videoWidth + ' × ' + v.videoHeight + ' px');
+  } catch (e) { videoOff(); VID.on = false; toast('No se pudo abrir ese vídeo. Prueba con un MP4 o MOV.'); }
+  btn.disabled = false;
+}
+// Reproducción: se pinta cada fotograma nuevo; en pausa, al mover el cursor o cambiar un ajuste
+function vloop(now, meta) {
+  if (!VID.on) return;
+  if (meta && meta.mediaTime != null) { if (VID.prevMT != null) { const d = meta.mediaTime - VID.prevMT; if (d > 0.008 && d < 0.1) VID.fpsAcc = (VID.fpsAcc || []).concat(d).slice(-12); if (VID.fpsAcc && VID.fpsAcc.length >= 8) { const m = VID.fpsAcc.slice().sort((a, b) => a - b)[VID.fpsAcc.length >> 1], f = 1 / m; VID.fps = [24, 25, 30, 50, 60].reduce((a, b) => Math.abs(b - f) < Math.abs(a - f) ? b : a); } } VID.prevMT = meta.mediaTime; }
+  drawVideo(false);
+  const v = VID.el;
+  if (!VID.rec && !v.paused && v.currentTime >= VID.out - 0.02) { v.pause(); return; }
+  if (!v.paused && !v.ended) { if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(vloop); else requestAnimationFrame(() => vloop()); }
+}
+const PLAY = 'M4 2.5v11l9-5.5z', PAUSE = 'M3.5 2.5h3.2v11H3.5zM9.3 2.5h3.2v11H9.3z';
+VID.el.addEventListener('play', () => { $('playIcon').setAttribute('d', PAUSE); VID.prevMT = null; vloop(); });
+for (const ev of ['pause', 'ended']) VID.el.addEventListener(ev, () => { $('playIcon').setAttribute('d', PLAY); drawVideo(true); });
+VID.el.addEventListener('seeked', () => drawVideo(true));
+$('playBtn').addEventListener('click', async () => {
+  const v = VID.el; if (!VID.on || VID.rec) return;
+  if (!v.paused) { v.pause(); return; }
+  if (v.currentTime >= VID.out - 0.05 || v.currentTime < VID.in) await seekTo(VID.in);
+  try { await v.play(); } catch (e) { toast('No se pudo reproducir'); }
+});
+$('seek').addEventListener('input', e => { if (VID.on && !VID.rec && VID.dur) VID.el.currentTime = +e.target.value / 1000 * VID.dur; });
+$('inBtn').addEventListener('click', () => { if (!VID.on || VID.rec) return; VID.in = Math.min(VID.el.currentTime, VID.dur - 0.1); if (VID.out <= VID.in + 0.1) VID.out = VID.dur; trimUI(); });
+$('outBtn').addEventListener('click', () => { if (!VID.on || VID.rec) return; VID.out = Math.max(VID.el.currentTime, 0.1); if (VID.in >= VID.out - 0.1) VID.in = 0; trimUI(); });
+$('split').addEventListener('input', () => { if (VID.on) drawVideo(false); });
+
+/* Guardar el vídeo: se reproduce el tramo elegido con el look y se graba lo que sale por pantalla, con su sonido.
+   Tarda lo que dura el tramo. Un segundo toque en «Guardar» lo detiene y guarda lo grabado hasta ahí. */
+async function exportVideo(btn) {
+  const v = VID.el, cv = VID.cv;
+  if (VID.rec) { VID.stop = true; return; }
+  const mime = window.MediaRecorder && cv.captureStream ? ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'].find(m => MediaRecorder.isTypeSupported(m)) : null;
+  if (!mime) { toast('Este dispositivo no puede grabar el vídeo'); return; }
+  let dest = null, blob = null;
+  try {
+    v.pause();
+    const stream = cv.captureStream(); // sin cadencia fija: entra un fotograma cada vez que se pinta uno
+    try { // el sonido del vídeo se lleva a la grabación (y a los altavoces) con Web Audio
+      if (!VID.ac) { VID.ac = new (window.AudioContext || window.webkitAudioContext)(); VID.node = VID.ac.createMediaElementSource(v); VID.node.connect(VID.ac.destination); }
+      await Promise.race([VID.ac.resume(), new Promise(r => setTimeout(r, 800))]); dest = VID.ac.createMediaStreamDestination(); VID.node.connect(dest);
+      for (const tr of dest.stream.getAudioTracks()) stream.addTrack(tr);
+    } catch (e) { dest = null; }
+    const chunks = [], rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: Math.round(Math.max(4e6, cv.width * cv.height * VID.fps * 0.14)) });
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    const stopped = new Promise(r => { rec.onstop = r; });
+    await seekTo(VID.in); VID.rec = rec; VID.stop = false; drawVideo(true);
+    rec.start(500); await v.play();
+    await new Promise(res => { const chk = () => { if (VID.stop || v.ended || v.paused || v.currentTime >= VID.out - 0.01) return res(); btn.textContent = 'Detener · ' + Math.round(100 * (v.currentTime - VID.in) / Math.max(0.1, VID.out - VID.in)) + ' %'; setTimeout(chk, 100); }; chk(); });
+    v.pause(); if (rec.state !== 'inactive') rec.stop(); await stopped;
+    blob = new Blob(chunks, { type: mime.split(';')[0] });
+  } catch (e) { blob = null; }
+  VID.rec = null; VID.stop = false; if (dest && VID.node) { try { VID.node.disconnect(dest); } catch (e) { /* ya estaba suelto */ } }
+  drawVideo(true); btn.textContent = 'Guardando…'; btn.disabled = true;
+  if (!blob || !blob.size) toast('No se pudo grabar el vídeo');
+  else {
+    const filename = slug(S.tgtName || 'video') + '-' + slug(S.look.name) + (/mp4/.test(mime) ? '.mp4' : '.webm'); let done = false;
+    if (NAT) { const r = await NAT.saveVideo(blob, filename); done = true; toast(r === 'saved' ? 'Vídeo guardado en Fotos' : r === 'shared' ? 'Vídeo listo' : r === 'cancelled' ? 'Guardado cancelado' : 'No se pudo guardar el vídeo'); }
+    const dl = done ? null : await downloadsP;
+    if (dl) {
+      try { await dl.save({ filename, data: blob }); done = true; toast('Vídeo guardado'); }
+      catch (e) { if (e && (e.code === 'declined' || e.code === 'rate_limited')) { done = true; toast(e.code === 'declined' ? 'Guardado cancelado' : 'Espera un momento y vuelve a intentarlo'); } }
+    }
+    if (!done) showOut(blob, true);
+  }
+  btn.textContent = 'Guardar'; btn.disabled = false;
+}
+
+/* ---------- Exportar el look como LUT (.cube) para usarlo en un editor de vídeo ---------- */
+function cubeText(n) {
+  const d = lut3d(S.tgt.stats, S.look, n), rows = new Array(n * n * n);
+  for (let i = 0; i < rows.length; i++) rows[i] = d[i * 4].toFixed(6) + ' ' + d[i * 4 + 1].toFixed(6) + ' ' + d[i * 4 + 2].toFixed(6);
+  return 'TITLE "Robacolor ' + String(S.look.name).replace(/"/g, '') + '"\nLUT_3D_SIZE ' + n + '\nDOMAIN_MIN 0.0 0.0 0.0\nDOMAIN_MAX 1.0 1.0 1.0\n' + rows.join('\n') + '\n';
+}
+// Un .zip mínimo (sin compresión) con un solo archivo: el visor solo deja descargar ciertos tipos, y .cube no es uno
+function zipOne(name, bytes) {
+  const tab = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; tab[i] = c >>> 0; }
+  let crc = 0xFFFFFFFF; for (let i = 0; i < bytes.length; i++) crc = tab[(crc ^ bytes[i]) & 255] ^ (crc >>> 8); crc = (crc ^ 0xFFFFFFFF) >>> 0;
+  const nm = new TextEncoder().encode(name), L = 30 + nm.length, out = new Uint8Array(L + bytes.length + 46 + nm.length + 22), dv = new DataView(out.buffer);
+  dv.setUint32(0, 0x04034b50, true); dv.setUint16(4, 20, true); dv.setUint16(12, 0x21, true); dv.setUint32(14, crc, true); dv.setUint32(18, bytes.length, true); dv.setUint32(22, bytes.length, true); dv.setUint16(26, nm.length, true); out.set(nm, 30); out.set(bytes, L);
+  const c0 = L + bytes.length;
+  dv.setUint32(c0, 0x02014b50, true); dv.setUint16(c0 + 4, 20, true); dv.setUint16(c0 + 6, 20, true); dv.setUint16(c0 + 14, 0x21, true); dv.setUint32(c0 + 16, crc, true); dv.setUint32(c0 + 20, bytes.length, true); dv.setUint32(c0 + 24, bytes.length, true); dv.setUint16(c0 + 28, nm.length, true); out.set(nm, c0 + 46);
+  const e0 = c0 + 46 + nm.length;
+  dv.setUint32(e0, 0x06054b50, true); dv.setUint16(e0 + 8, 1, true); dv.setUint16(e0 + 10, 1, true); dv.setUint32(e0 + 12, 46 + nm.length, true); dv.setUint32(e0 + 16, c0, true);
+  return out;
+}
+$('lutBtn').addEventListener('click', async () => {
+  if (!S.look || !S.tgt) return;
+  const name = 'robacolor-' + slug(S.look.name), text = cubeText(33);
+  if (NAT) { const r = await NAT.shareText(text, name + '.cube'); if (r === 'failed') toast('No se pudo exportar el LUT'); return; }
+  const dl = await downloadsP;
+  if (!dl) { toast('Aquí no se pueden descargar archivos'); return; }
+  try { await dl.save({ filename: name + '.zip', data: zipOne(name + '.cube', new TextEncoder().encode(text)) }); toast('LUT guardado (dentro del .zip)'); }
+  catch (e) { toast(e && e.code === 'declined' ? 'Exportación cancelada' : 'No se pudo exportar el LUT'); }
+});
 
 /* ---------- Ilustraciones de ejemplo ---------- */
 function ridge(x, w, h, base, amp, ph, fill) {

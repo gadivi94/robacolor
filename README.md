@@ -1,6 +1,6 @@
 # Robacolor · app de iPhone
 
-Robacolor copia los colores de una foto de referencia a la tuya y deja terminar el revelado con herramientas tipo Lightroom. Esta carpeta es la app de iPhone y iPad: la misma página que ya has probado, dentro de una app nativa (Capacitor 8), compilada en la nube con **Codemagic**, sin Mac. Es el mismo sistema que opos365 y Radar de Plazas.
+Robacolor copia los colores de una foto de referencia a tu foto o a tu vídeo y deja terminar el trabajo con herramientas de revelado y de etalonaje (ruedas Lift/Gamma/Gain, curvas, monitores de señal). Esta carpeta es la app de iPhone y iPad: la misma página que ya has probado, dentro de una app nativa (Capacitor 8), compilada en la nube con **Codemagic**, sin Mac. Es el mismo sistema que opos365 y Radar de Plazas.
 
 **Qué añade la app respecto a la web**
 - **Guardar foto** la añade directamente a Fotos (si no das permiso, abre la hoja de compartir).
@@ -39,6 +39,19 @@ Esto solo se puede comprobar en un iPhone real:
 - Fluidez al mover los controles con una foto grande.
 - Guardar un look, cerrar la app del todo y volver a abrirla: el look tiene que seguir ahí.
 
+## Vídeo
+«Subir» admite también vídeos. El look y los ajustes se convierten en una tabla 3D (LUT) que la tarjeta gráfica aplica a cada fotograma, así que la vista previa va en tiempo real.
+
+- **Transporte:** reproducir, código de tiempo, barra de posición y marcas de **Entrada** y **Salida** para guardar solo un tramo.
+- **Monitores:** histograma, forma de onda, parade RGB y vectorscopio del resultado (también con fotos).
+- **Ruedas de color:** Lift, Gamma y Gain, cada una con su color y su nivel.
+- **Guardar:** reproduce el tramo con el look y graba lo que sale, con su sonido. Tarda lo que dura el tramo; un segundo toque en «Guardar» lo detiene. Resolución máxima 1920 px de lado largo.
+- **Exportar LUT:** guarda el look y los ajustes como archivo `.cube` (33 puntos) para usarlo en DaVinci Resolve, Premiere o Final Cut. No incluye viñeteado, granulado ni claridad.
+
+Límites conocidos: la claridad no se aplica al vídeo; el selector de iOS puede entregar el vídeo ya comprimido (desde Archivos llega el original); y el guardado graba en tiempo real, no vuelve a codificar el original fotograma a fotograma.
+
+Qué probar en el iPhone: que el vídeo se ve con el look al cargarlo, que suena al reproducir, que «Guardar» termina y el vídeo aparece en Fotos con sonido, y que no se salta fotogramas.
+
 ## Actualizar la app
 Los cambios llegan en la siguiente compilación: Codemagic → **Start new build** → **iOS (TestFlight)**. El número de compilación sube solo. Para cambiar la versión que se ve en la tienda (1.0.0 → 1.1.0), cambia `"version"` en `package.json`.
 
@@ -47,7 +60,7 @@ Los cambios llegan en la siguiente compilación: Codemagic → **Start new build
 | Archivo / carpeta | Qué es |
 |---|---|
 | `web/robacolor.html` | La app: interfaz y todo el procesado de color. Es la misma página que la versión web |
-| `native/native.js` | Capa nativa: guardar en Fotos, compartir y archivo de looks |
+| `native/native.js` | Capa nativa: guardar fotos y vídeos en Fotos, compartir el LUT y archivo de looks |
 | `assets/` | Icono y pantalla de inicio (clara y oscura). Codemagic genera todos los tamaños |
 | `scripts/prepare-www.mjs` | Monta `www/` con la página, las fuentes y la capa nativa |
 | `scripts/patch-native.mjs` | Pone nombre, versión, permisos y orientación en el proyecto iOS |
