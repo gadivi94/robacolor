@@ -94,6 +94,8 @@ button,input{font:inherit;color:inherit}
 .tbtn{padding:7px 10px;font-size:13px;display:inline-flex;align-items:center}
 .tc{font-family:var(--font-data);font-size:13px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
 .seekwrap{flex:1;min-width:150px;display:block}
+.vq{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+.vq .tabs{flex:1;min-width:180px}
 .trimbar{display:block;height:3px;background:var(--line);border-radius:2px;position:relative}
 .trimbar i{position:absolute;top:0;bottom:0;background:var(--ink);border-radius:2px}
 .tabs.small button{font-size:12px;padding:6px 2px}
@@ -292,6 +294,7 @@ footer p{margin:0;max-width:70ch}
           <button class="btn tbtn" type="button" id="inBtn">Entrada</button>
           <button class="btn tbtn" type="button" id="outBtn">Salida</button>
         </div>
+        <div class="vq" id="vqRow" hidden><span class="hint" id="vqLabel">Tamaño al guardar</span><div class="tabs small" id="vq" role="tablist" aria-label="Tamaño del vídeo al guardar"></div></div>
         <p class="hint" id="trimInfo" hidden></p>
         <p class="hint">Arrastra la línea para comparar el antes y el después.</p>
       </section>
@@ -1192,7 +1195,7 @@ window.addEventListener('drop', e => e.preventDefault());
 
 /* ---------- Avisos y copiar ---------- */
 let toastT;
-function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2600); }
+function toast(msg, ms) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 2600); }
 function copy(text) {
   const ok = () => toast('Copiado ' + text), ko = () => toast(text);
   try { navigator.clipboard.writeText(text).then(ok, ko); } catch (e) { ko(); }
@@ -1245,17 +1248,17 @@ function showOut(blob, video) {
 $('outClose').addEventListener('click', () => { for (const m of [$('outImg'), $('outVid')]) { if (m.src) URL.revokeObjectURL(m.src); m.removeAttribute('src'); } $('outVid').load(); $('out').hidden = true; $('saveBtn').focus(); });
 
 /* ---------- Vídeo: el look se aplica en la GPU con una tabla 3D, fotograma a fotograma ---------- */
-const VID = { on: false, el: $('vid'), cv: $('gl'), gl: null, u: null, n: 33, dirty: true, in: 0, out: 0, dur: 0, fps: 30, rec: null, stop: false, frame: 0, lastScope: 0, url: null, sc: null, ac: null, node: null, lastT: -1 };
+const VID = { on: false, el: $('vid'), cv: $('gl'), gl: null, u: null, n: 33, dirty: true, in: 0, out: 0, dur: 0, fps: 30, rec: null, stop: false, frame: 0, lastScope: 0, url: null, sc: null, ac: null, node: null, lastT: -1, sizes: [], size: 0, view: [2, 2], got: 0, miss: 0, prevPF: null };
 const FRAG = `#version 300 es
 precision highp float; precision highp sampler3D;
-uniform sampler2D uVid; uniform sampler3D uLut; uniform float uSplit, uVig, uGrain, uSeed, uN;
+uniform sampler2D uVid; uniform sampler3D uLut; uniform float uSplit, uVig, uGrain, uSeed, uN, uGs;
 in vec2 uv; out vec4 o;
 float rnd(vec2 q) { return fract(sin(dot(q, vec2(12.9898, 78.233)) + uSeed) * 43758.5453) - 0.5; }
 void main() {
   vec3 c = texture(uVid, uv).rgb;
   vec3 g = texture(uLut, c * ((uN - 1.0) / uN) + 0.5 / uN).rgb;
   if (uVig != 0.0) { vec2 d = uv * 2.0 - 1.0; float d2 = dot(d, d) * 0.5; float m = max(0.0, 1.0 + uVig * d2 * sqrt(d2)); g = pow(pow(g, vec3(2.2)) * m * m * m, vec3(1.0 / 2.2)); }
-  if (uGrain > 0.0) { float l = dot(g, vec3(0.2126, 0.7152, 0.0722)); g += uGrain * rnd(gl_FragCoord.xy) * (0.4 + 0.6 * (1.0 - abs(2.0 * l - 1.0))); }
+  if (uGrain > 0.0) { float l = dot(g, vec3(0.2126, 0.7152, 0.0722)); g += uGrain * rnd(floor(gl_FragCoord.xy / uGs)) * (0.4 + 0.6 * (1.0 - abs(2.0 * l - 1.0))); }
   o = vec4(uv.x < uSplit ? c : clamp(g, 0.0, 1.0), 1.0);
 }`;
 function glInit() {
@@ -1278,7 +1281,7 @@ in vec2 p; out vec2 uv; void main() { uv = p * 0.5 + 0.5; gl_Position = vec4(p, 
     for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_3D, k, v);
     const U = n => gl.getUniformLocation(pr, n);
     gl.uniform1i(U('uVid'), 0); gl.uniform1i(U('uLut'), 1);
-    VID.u = { split: U('uSplit'), vig: U('uVig'), grain: U('uGrain'), seed: U('uSeed'), n: U('uN') }; VID.gl = gl;
+    VID.u = { split: U('uSplit'), vig: U('uVig'), grain: U('uGrain'), seed: U('uSeed'), n: U('uN'), gs: U('uGs') }; VID.gl = gl;
     return true;
   } catch (e) { return false; }
 }
@@ -1294,7 +1297,7 @@ function drawVideo(force) {
   }
   gl.activeTexture(gl.TEXTURE0); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-  gl.viewport(0, 0, VID.cv.width, VID.cv.height); gl.uniform1f(VID.u.seed, (VID.frame = (VID.frame + 1) % 997) * 0.37);
+  gl.viewport(0, 0, VID.cv.width, VID.cv.height); gl.uniform1f(VID.u.gs, Math.max(1, Math.max(VID.cv.width, VID.cv.height) / 1920)); gl.uniform1f(VID.u.seed, (VID.frame = (VID.frame + 1) % 997) * 0.37);
   const now = performance.now(), split = VID.rec ? 0 : +$('split').value / 100;
   if (!VID.rec && (force || now - VID.lastScope > 140)) { // los monitores miden el resultado completo, sin la mitad «antes»; al grabar se apagan para no perder fotogramas
     VID.lastScope = now; gl.uniform1f(VID.u.split, 0); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -1313,11 +1316,21 @@ function trimUI() {
   const whole = VID.in < 0.01 && VID.out > VID.dur - 0.01, info = $('trimInfo'); info.hidden = whole;
   info.textContent = 'Se guardará el tramo de ' + timecode(VID.in) + ' a ' + timecode(VID.out) + ' (' + (VID.out - VID.in).toFixed(1).replace('.', ',') + ' s).';
 }
+// Tamaños de salida: el original (hasta 4K) y, si el vídeo es mayor, 1080p y 720p. En pantalla se trabaja a 1920 como mucho.
+const vqName = ([w, h]) => Math.max(w, h) >= 3840 ? '4K' : Math.min(w, h) + 'p';
+function vqUI() {
+  const box = $('vq'), cur = VID.sizes[VID.size]; box.textContent = '';
+  VID.sizes.forEach((sz, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', i === VID.size ? 'true' : 'false'); b.textContent = vqName(sz);
+    b.addEventListener('click', () => { if (VID.rec) return; VID.size = i; vqUI(); }); box.appendChild(b);
+  });
+  $('vq').hidden = VID.sizes.length < 2; $('vqLabel').textContent = cur ? 'Tamaño al guardar · ' + cur[0] + ' × ' + cur[1] + ' px' : '';
+}
 function videoOff() {
   if (!VID.on) return;
   VID.on = false; VID.stop = true; const v = VID.el; v.pause(); v.removeAttribute('src'); v.load();
   if (VID.url) { URL.revokeObjectURL(VID.url); VID.url = null; }
-  VID.cv.hidden = true; $('after').hidden = false; $('before').hidden = false; $('transport').hidden = true; $('trimInfo').hidden = true; $('fxNote').hidden = true;
+  VID.cv.hidden = true; $('after').hidden = false; $('before').hidden = false; $('transport').hidden = true; $('vqRow').hidden = true; $('trimInfo').hidden = true; $('fxNote').hidden = true;
 }
 async function setVideo(file) {
   if (!glInit()) { toast('Este dispositivo no puede aplicar el look a un vídeo'); return; }
@@ -1329,7 +1342,9 @@ async function setVideo(file) {
     try { await v.play(); } catch (e) { /* hay navegadores que no dejan reproducir sin un toque; el primer fotograma llega igual */ }
     v.pause(); v.muted = false;
     if (!(v.videoWidth > 1 && v.videoHeight > 1 && isFinite(v.duration) && v.duration > 0)) throw new Error('video');
-    const [cw, ch] = fit(v.videoWidth, v.videoHeight, 1920);
+    const [cw, ch] = fit(v.videoWidth, v.videoHeight, 1920), top = Math.min(3840, VID.gl.getParameter(VID.gl.MAX_TEXTURE_SIZE) || 1920), side = Math.max(v.videoWidth, v.videoHeight);
+    VID.sizes = [top, 1920, 1280].filter((m, i) => i === 0 || (m < top && side > m)).map(m => fit(v.videoWidth, v.videoHeight, m).map(n => Math.max(2, n & ~1))); // lados pares: lo piden los codificadores
+    VID.size = 0; VID.view = [cw, ch];
     VID.cv.width = cw; VID.cv.height = ch; VID.dur = v.duration; VID.in = 0; VID.out = v.duration; VID.fps = 30; VID.lastT = -1;
     await seekTo(Math.min(v.duration * 0.25, 2)); if (v.readyState < 2) await once(v, 'loadeddata');
     // El look se ajusta con las medidas de un fotograma representativo (como con una foto)
@@ -1337,7 +1352,7 @@ async function setVideo(file) {
     if (S.tgt) release(S.tgt.src);
     S.tgt = { kind: 'video', src: null, w: cw, h: ch, pw: cw, ph: ch, stats: st, space: 'srgb' };
     $('frame').style.setProperty('--ar', cw / ch);
-    $('after').hidden = true; $('before').hidden = true; VID.cv.hidden = false; $('transport').hidden = false; $('fxNote').hidden = false;
+    $('after').hidden = true; $('before').hidden = true; VID.cv.hidden = false; $('transport').hidden = false; $('vqRow').hidden = false; $('fxNote').hidden = false; vqUI();
     $('tgtBadge').textContent = 'Vídeo'; $('tgtBadge').hidden = false;
     $('cHist').setAttribute('d', histPath(st.hist, 100, 100));
     VID.on = true; VID.dirty = true; VID.stop = false; trimUI();
@@ -1350,6 +1365,7 @@ async function setVideo(file) {
 function vloop(now, meta) {
   if (!VID.on) return;
   if (meta && meta.mediaTime != null) { if (VID.prevMT != null) { const d = meta.mediaTime - VID.prevMT; if (d > 0.008 && d < 0.1) VID.fpsAcc = (VID.fpsAcc || []).concat(d).slice(-12); if (VID.fpsAcc && VID.fpsAcc.length >= 8) { const m = VID.fpsAcc.slice().sort((a, b) => a - b)[VID.fpsAcc.length >> 1], f = 1 / m; VID.fps = [24, 25, 30, 50, 60].reduce((a, b) => Math.abs(b - f) < Math.abs(a - f) ? b : a); } } VID.prevMT = meta.mediaTime; }
+  if (VID.rec && meta && meta.presentedFrames != null) { if (VID.prevPF != null) VID.miss += Math.max(0, meta.presentedFrames - VID.prevPF - 1); VID.prevPF = meta.presentedFrames; VID.got++; }
   drawVideo(false);
   const v = VID.el;
   if (!VID.rec && !v.paused && v.currentTime >= VID.out - 0.02) { v.pause(); return; }
@@ -1375,35 +1391,40 @@ $('split').addEventListener('input', () => { if (VID.on) drawVideo(false); });
 async function exportVideo(btn) {
   const v = VID.el, cv = VID.cv;
   if (VID.rec) { VID.stop = true; return; }
-  const mime = window.MediaRecorder && cv.captureStream ? ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'].find(m => MediaRecorder.isTypeSupported(m)) : null;
+  const [ew, eh] = VID.sizes[VID.size] || VID.view, big = ew * eh > 1920 * 1088; // por encima de 1080p se pide un nivel de H.264 que admita 4K
+  const mime = window.MediaRecorder && cv.captureStream ? (big ? ['video/mp4;codecs=avc1.640034,mp4a.40.2', 'video/mp4;codecs=avc1.640033,mp4a.40.2'] : []).concat(['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']).find(m => MediaRecorder.isTypeSupported(m)) : null;
   if (!mime) { toast('Este dispositivo no puede grabar el vídeo'); return; }
-  let dest = null, blob = null;
+  let dest = null, blob = null, stream = null;
   try {
     v.pause();
-    const stream = cv.captureStream(); // sin cadencia fija: entra un fotograma cada vez que se pinta uno
+    cv.width = ew; cv.height = eh; drawVideo(true); // el lienzo pasa al tamaño de salida mientras dura la grabación
+    stream = cv.captureStream(); // sin cadencia fija: entra un fotograma cada vez que se pinta uno
     try { // el sonido del vídeo se lleva a la grabación (y a los altavoces) con Web Audio
       if (!VID.ac) { VID.ac = new (window.AudioContext || window.webkitAudioContext)(); VID.node = VID.ac.createMediaElementSource(v); VID.node.connect(VID.ac.destination); }
       await Promise.race([VID.ac.resume(), new Promise(r => setTimeout(r, 800))]); dest = VID.ac.createMediaStreamDestination(); VID.node.connect(dest);
       for (const tr of dest.stream.getAudioTracks()) stream.addTrack(tr);
     } catch (e) { dest = null; }
-    const chunks = [], rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: Math.round(Math.max(4e6, cv.width * cv.height * VID.fps * 0.14)) });
+    const chunks = [], rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: Math.round(Math.min(60e6, Math.max(4e6, ew * eh * VID.fps * 0.14))) });
     rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
     const stopped = new Promise(r => { rec.onstop = r; });
-    await seekTo(VID.in); VID.rec = rec; VID.stop = false; drawVideo(true);
+    await seekTo(VID.in); VID.rec = rec; VID.stop = false; VID.got = VID.miss = 0; VID.prevPF = null; drawVideo(true);
     rec.start(500); await v.play();
     await new Promise(res => { const chk = () => { if (VID.stop || v.ended || v.paused || v.currentTime >= VID.out - 0.01) return res(); btn.textContent = 'Detener · ' + Math.round(100 * (v.currentTime - VID.in) / Math.max(0.1, VID.out - VID.in)) + ' %'; setTimeout(chk, 100); }; chk(); });
     v.pause(); if (rec.state !== 'inactive') rec.stop(); await stopped;
     blob = new Blob(chunks, { type: mime.split(';')[0] });
   } catch (e) { blob = null; }
   VID.rec = null; VID.stop = false; if (dest && VID.node) { try { VID.node.disconnect(dest); } catch (e) { /* ya estaba suelto */ } }
-  drawVideo(true); btn.textContent = 'Guardando…'; btn.disabled = true;
-  if (!blob || !blob.size) toast('No se pudo grabar el vídeo');
+  if (stream) for (const tr of stream.getTracks()) tr.stop();
+  cv.width = VID.view[0]; cv.height = VID.view[1]; drawVideo(true); btn.textContent = 'Guardando…'; btn.disabled = true;
+  if (!blob || !blob.size) toast(VID.size < VID.sizes.length - 1 ? 'No se pudo grabar a ' + vqName([ew, eh]) + '. Prueba con un tamaño menor.' : 'No se pudo grabar el vídeo', 5000);
   else {
+    // si la grabación no ha llegado a pintar todos los fotogramas, se avisa: a menor tamaño irá fluido
+    const dims = ' · ' + ew + ' × ' + eh + ' px' + (VID.size < VID.sizes.length - 1 && VID.miss > 0.2 * (VID.got + VID.miss) ? ' · Han faltado fotogramas: prueba un tamaño menor' : ''), ms = dims.length > 30 ? 6000 : 0;
     const filename = slug(S.tgtName || 'video') + '-' + slug(S.look.name) + (/mp4/.test(mime) ? '.mp4' : '.webm'); let done = false;
-    if (NAT) { const r = await NAT.saveVideo(blob, filename); done = true; toast(r === 'saved' ? 'Vídeo guardado en Fotos' : r === 'shared' ? 'Vídeo listo' : r === 'cancelled' ? 'Guardado cancelado' : 'No se pudo guardar el vídeo'); }
+    if (NAT) { const r = await NAT.saveVideo(blob, filename); done = true; toast(r === 'saved' ? 'Vídeo guardado en Fotos' + dims : r === 'shared' ? 'Vídeo listo' + dims : r === 'cancelled' ? 'Guardado cancelado' : 'No se pudo guardar el vídeo', ms); }
     const dl = done ? null : await downloadsP;
     if (dl) {
-      try { await dl.save({ filename, data: blob }); done = true; toast('Vídeo guardado'); }
+      try { await dl.save({ filename, data: blob }); done = true; toast('Vídeo guardado' + dims, ms); }
       catch (e) { if (e && (e.code === 'declined' || e.code === 'rate_limited')) { done = true; toast(e.code === 'declined' ? 'Guardado cancelado' : 'Espera un momento y vuelve a intentarlo'); } }
     }
     if (!done) showOut(blob, true);
