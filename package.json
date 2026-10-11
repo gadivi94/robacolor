@@ -15,7 +15,8 @@
     "@capacitor/share": "^8.0.0",
     "@fontsource-variable/bricolage-grotesque": "^5.0.0",
     "@fontsource-variable/instrument-sans": "^5.0.0",
-    "@fontsource/dm-mono": "^5.0.0"
+    "@fontsource/dm-mono": "^5.0.0",
+    "robacolor-raw": "file:plugins/robacolor-raw"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

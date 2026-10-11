@@ -39,6 +39,16 @@ Esto solo se puede comprobar en un iPhone real:
 - Fluidez al mover los controles con una foto grande.
 - Guardar un look, cerrar la app del todo y volver a abrirla: el look tiene que seguir ahí.
 
+## RAW (rama `raw`, en pruebas)
+En esta rama, «Subir tu foto» ofrece además **RAW desde Fotos** y **RAW desde Archivos**. La foto se revela con el motor RAW de Apple (RW2, DNG, ProRAW, CR3, NEF, ARW y los demás formatos que admita tu versión de iOS) y entra en Robacolor a 16 bits, sin pasar por un JPEG. Eso da más margen al mover luces y sombras y evita bandas en los degradados.
+
+El código nativo está en `plugins/robacolor-raw` (Swift). **No se ha podido compilar antes de subirlo**, así que la primera compilación de esta rama puede fallar: en Codemagic elige la rama `raw` al lanzar **iOS (TestFlight)** y, si sale en rojo, pásame las líneas entre «MOTIVO DEL ERROR». La rama `main` no lleva este código y compila aparte.
+
+Qué probar con un RAW:
+- Que la foto sale derecha (no girada ni boca abajo) y con colores normales en el «antes».
+- Cuánto tarda en abrirse y si «Guardar foto» termina bien (lee unos 90 MB).
+- Bajar **Iluminaciones** y subir **Sombras** a fondo: no deberían aparecer bandas.
+
 ## Actualizar la app
 Los cambios llegan en la siguiente compilación: Codemagic → **Start new build** → **iOS (TestFlight)**. El número de compilación sube solo. Para cambiar la versión que se ve en la tienda (1.0.0 → 1.1.0), cambia `"version"` en `package.json`.
 
@@ -48,6 +58,7 @@ Los cambios llegan en la siguiente compilación: Codemagic → **Start new build
 |---|---|
 | `web/robacolor.html` | La app: interfaz y todo el procesado de color. Es la misma página que la versión web |
 | `native/native.js` | Capa nativa: guardar en Fotos, compartir y archivo de looks |
+| `plugins/robacolor-raw/` | Plugin nativo (Swift): selector de fotos y revelado RAW a 16 bits |
 | `assets/` | Icono y pantalla de inicio (clara y oscura). Codemagic genera todos los tamaños |
 | `scripts/prepare-www.mjs` | Monta `www/` con la página, las fuentes y la capa nativa |
 | `scripts/patch-native.mjs` | Pone nombre, versión, permisos y orientación en el proyecto iOS |

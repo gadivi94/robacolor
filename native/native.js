@@ -67,5 +67,16 @@
     return FS.writeFile({ path: LOOKS.path, directory: LOOKS.directory, encoding: LOOKS.encoding, data: texto }).catch(function () {});
   }
 
-  window.RobacolorNative = { savePhoto: savePhoto, readLooks: readLooks, storeLooks: storeLooks };
+  /* 4. RAW: el plugin nativo abre el selector, revela la foto con el motor RAW de Apple y deja dos archivos
+        en crudo (16 bits lineales). Aquí solo se convierten sus rutas en direcciones que la web puede leer. */
+  async function pickRaw(origen, lado, espacio) {
+    var R = plugin("RobacolorRaw");
+    if (!R) throw new Error("Falta el plugin RAW");
+    var r = await R.pick({ source: origen, preview: lado, full: 4096, space: espacio });
+    r.previewUrl = window.Capacitor.convertFileSrc(r.preview);
+    r.fullUrl = window.Capacitor.convertFileSrc(r.full);
+    return r;
+  }
+
+  window.RobacolorNative = { savePhoto: savePhoto, readLooks: readLooks, storeLooks: storeLooks, pickRaw: plugin("RobacolorRaw") ? pickRaw : null };
 })();

@@ -87,6 +87,7 @@ button,input{font:inherit;color:inherit}
 .step{font-family:var(--font-data);font-size:11px;font-weight:500;width:20px;height:20px;border:1px solid var(--ink);border-radius:50%;display:inline-grid;place-items:center}
 .badge{font-family:var(--font-data);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;border:1px dashed var(--line-strong);color:var(--muted);padding:2px 7px;border-radius:3px}
 .spacer{flex:1}
+.menu{display:flex;flex-wrap:wrap;gap:8px}
 
 .label{font-family:var(--font-data);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0}
 .hint{color:var(--muted);font-size:13px;margin:0}
@@ -260,6 +261,11 @@ footer p{margin:0;max-width:70ch}
           <button class="btn primary" type="button" id="saveBtn">Guardar foto</button>
           <input class="sr" type="file" id="tgtFile" accept="image/*" tabindex="-1" aria-hidden="true">
         </div>
+        <div class="menu" id="tgtMenu" hidden>
+          <button class="btn" type="button" data-pick="web">Foto (JPG, HEIC)</button>
+          <button class="btn" type="button" data-pick="photos">RAW desde Fotos</button>
+          <button class="btn" type="button" data-pick="files">RAW desde Archivos</button>
+        </div>
         <div class="mat" id="tgtDrop">
           <div class="frame" id="frame">
             <canvas id="after" role="img" aria-label="Tu foto con el look aplicado"></canvas>
@@ -405,11 +411,21 @@ function toLab(px, space) {
   for (let i = 0, j = 0; i < n; i++, j += 4) labFromLinear(S2L[px[j]], S2L[px[j + 1]], S2L[px[j + 2]], m, o, i);
   return o;
 }
-// RGB lineal de 16 bits (revelado RAW): 3 valores por píxel, 65535 = blanco
+// RGBA lineal de 16 bits (revelado RAW): 65535 = blanco
 function toLabLinear16(u16, space) {
-  const n = (u16.length / 3) | 0, o = newLab(n), m = M_IN[space || 'srgb'], k = 1 / 65535;
-  for (let i = 0, j = 0; i < n; i++, j += 3) labFromLinear(u16[j] * k, u16[j + 1] * k, u16[j + 2] * k, m, o, i);
+  const n = u16.length >> 2, o = newLab(n), m = M_IN[space || 'srgb'], k = 1 / 65535;
+  for (let i = 0, j = 0; i < n; i++, j += 4) labFromLinear(u16[j] * k, u16[j + 1] * k, u16[j + 2] * k, m, o, i);
   return o;
+}
+// Oklab -> píxeles de 8 bits sin ningún ajuste (para enseñar el «antes» de un RAW)
+function encodePlain(lab, out, space) {
+  const { L, A, B, n } = lab, M = M_OUT[space || 'srgb'];
+  for (let i = 0, j = 0; i < n; i++, j += 4) {
+    const l = L[i], a = A[i], b = B[i], l_ = l + 0.3963377774 * a + 0.2158037573 * b, m_ = l - 0.1055613458 * a - 0.0638541728 * b, s_ = l - 0.0894841775 * a - 1.2914855480 * b;
+    const lc = l_ * l_ * l_, mc = m_ * m_ * m_, sc = s_ * s_ * s_;
+    out[j] = ENC[(clamp(M[0] * lc + M[1] * mc + M[2] * sc, 0, 1) * EN + 0.5) | 0]; out[j + 1] = ENC[(clamp(M[3] * lc + M[4] * mc + M[5] * sc, 0, 1) * EN + 0.5) | 0];
+    out[j + 2] = ENC[(clamp(M[6] * lc + M[7] * mc + M[8] * sc, 0, 1) * EN + 0.5) | 0]; out[j + 3] = 255;
+  }
 }
 function labToRgb(L, a, b) {
   const l_ = L + 0.3963377774 * a + 0.2158037573 * b, m_ = L - 0.1055613458 * a - 0.0638541728 * b, s_ = L - 0.0894841775 * a - 1.2914855480 * b;
@@ -838,7 +854,23 @@ function setTarget(src, isExample) {
   const [sw, sh] = fit(pw, ph, Math.round(PREV / 2)), [sc, sx] = canvasOf(b, sw, sh);
   const small = { w: sw, h: sh, c: sc, x: sx, lab: toLab(sx.getImageData(0, 0, sw, sh).data, SPACE), out: sx.createImageData(sw, sh) };
   S.tgt = { src, w, h, pw, ph, lab, small, blur: null, space: SPACE, stats: analyze(lab), out: ctx2d(a).createImageData(pw, ph) };
-  $('tgtBadge').hidden = !isExample;
+  $('tgtBadge').textContent = 'Ejemplo'; $('tgtBadge').hidden = !isExample;
+  $('cHist').setAttribute('d', histPath(S.tgt.stats.hist, 100, 100));
+  schedule(true);
+}
+
+// Foto revelada por la app (RAW): llega en 16 bits lineales, así que no pasa por un lienzo de 8 bits
+function setTargetRaw(r, buf) {
+  if (S.tgt) release(S.tgt.src);
+  const pw = r.pw, ph = r.ph, b = $('before'), a = $('after'), space = SPACE; // la salida va siempre en el espacio de los lienzos; la entrada, en el que diga el revelado
+  b.width = a.width = pw; b.height = a.height = ph;
+  $('frame').style.setProperty('--ar', pw / ph);
+  const lab = toLabLinear16(buf, r.space), bx = ctx2d(b, true), plain = bx.createImageData(pw, ph);
+  encodePlain(lab, plain.data, space); bx.putImageData(plain, 0, 0);
+  const [sw, sh] = fit(pw, ph, Math.round(PREV / 2)), [sc, sx] = canvasOf(b, sw, sh), sl = newLab(sw * sh);
+  for (let y = 0, i = 0; y < sh; y++) { const yy = Math.min(ph - 1, Math.floor((y + 0.5) * ph / sh)); for (let x = 0; x < sw; x++, i++) { const q = yy * pw + Math.min(pw - 1, Math.floor((x + 0.5) * pw / sw)); sl.L[i] = lab.L[q]; sl.A[i] = lab.A[q]; sl.B[i] = lab.B[q]; } }
+  S.tgt = { src: null, raw: r, w: r.fw, h: r.fh, pw, ph, lab, small: { w: sw, h: sh, c: sc, x: sx, lab: sl, out: sx.createImageData(sw, sh) }, blur: null, space, stats: analyze(lab), out: ctx2d(a).createImageData(pw, ph) };
+  $('tgtBadge').textContent = r.raw ? 'RAW' : '16 bits'; $('tgtBadge').hidden = false;
   $('cHist').setAttribute('d', histPath(S.tgt.stats.hist, 100, 100));
   schedule(true);
 }
@@ -1066,8 +1098,8 @@ $('resetBtn').addEventListener('click', () => { RESET.all.forEach(f => f()); res
 
 /* ---------- Comparador, subida y arrastre ---------- */
 $('split').addEventListener('input', e => $('frame').style.setProperty('--split', e.target.value + '%'));
-function wire(btn, input, drop, handler) {
-  $(btn).addEventListener('click', () => $(input).click());
+function wire(btn, input, drop, handler, onClick) {
+  $(btn).addEventListener('click', onClick || (() => $(input).click()));
   $(input).addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) handler(f); e.target.value = ''; });
   const d = $(drop);
   d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('over'); });
@@ -1080,7 +1112,22 @@ async function openFile(file, then) {
 }
 const baseName = f => f.name.replace(/\.[^.]+$/, '').slice(0, 40);
 wire('refBtn', 'refFile', 'refDrop', f => openFile(f, src => { setRef(src, baseName(f) || 'Look', false); release(src); toast('Look extraído de la referencia'); }));
-wire('tgtBtn', 'tgtFile', 'tgtDrop', f => openFile(f, src => { S.tgtName = baseName(f); setTarget(src, false); }));
+// En la app, «Subir tu foto» deja elegir entre una foto normal y un RAW (que revela el plugin nativo)
+const RAWPICK = NAT && NAT.pickRaw;
+wire('tgtBtn', 'tgtFile', 'tgtDrop', f => openFile(f, src => { S.tgtName = baseName(f); setTarget(src, false); }), RAWPICK ? () => { $('tgtMenu').hidden = !$('tgtMenu').hidden; } : null);
+$('tgtMenu').addEventListener('click', async e => {
+  const how = e.target.dataset && e.target.dataset.pick; if (!how) return;
+  $('tgtMenu').hidden = true;
+  if (how === 'web') { $('tgtFile').click(); return; }
+  const btn = $('tgtBtn'); btn.disabled = true; btn.textContent = 'Revelando…';
+  try {
+    const r = await RAWPICK(how, PREV, SPACE), buf = new Uint16Array(await (await fetch(r.previewUrl)).arrayBuffer());
+    if (buf.length < r.pw * r.ph * 4) throw new Error('raw');
+    S.tgtName = String(r.name || 'foto').slice(0, 40); setTargetRaw(r, buf);
+    toast(r.raw ? 'RAW revelado · ' + r.width + ' × ' + r.height + ' px' : 'Foto abierta a 16 bits');
+  } catch (err) { if (!/cancel/i.test(String(err && err.message))) toast('No se pudo abrir ese archivo'); }
+  btn.disabled = false; btn.textContent = 'Subir tu foto';
+});
 window.addEventListener('dragover', e => e.preventDefault());
 window.addEventListener('drop', e => e.preventDefault());
 
@@ -1101,16 +1148,22 @@ $('saveBtn').addEventListener('click', async () => {
   const t = S.tgt; if (!S.look || !t) return;
   const btn = $('saveBtn'); btn.disabled = true;
   try {
-    const [w, h] = fit(t.w, t.h, 4096), [c, x] = canvasOf(t.src, w, h), rows = 96;
+    const rows = 96; let w, h, c, x, full = null;
+    if (t.raw) {
+      btn.textContent = 'Leyendo…'; await tick();
+      full = new Uint16Array(await (await fetch(t.raw.fullUrl)).arrayBuffer()); w = t.raw.fw; h = t.raw.fh;
+      if (full.length < w * h * 4) throw new Error('raw');
+      c = document.createElement('canvas'); c.width = w; c.height = h; x = ctx2d(c, true);
+    } else { [w, h] = fit(t.w, t.h, 4096); [c, x] = canvasOf(t.src, w, h); }
     if (V.clar && !t.blur) t.blur = blurMap(t.lab.L, t.pw, t.ph);
     const C = compile(t.stats, S.look);
     for (let y = 0; y < h; y += rows) {
-      const hh = Math.min(rows, h - y), im = x.getImageData(0, y, w, hh);
-      process(C, toLab(im.data, SPACE), im.data, w, hh, y, w, h, t); x.putImageData(im, 0, y);
+      const hh = Math.min(rows, h - y), im = full ? x.createImageData(w, hh) : x.getImageData(0, y, w, hh);
+      process(C, full ? toLabLinear16(full.subarray(y * w * 4, (y + hh) * w * 4), t.raw.space) : toLab(im.data, SPACE), im.data, w, hh, y, w, h, t); x.putImageData(im, 0, y);
       btn.textContent = Math.round(100 * (y + hh) / h) + ' %'; await tick();
     }
     const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.93));
-    c.width = c.height = 0; // libera la memoria del lienzo grande cuanto antes
+    c.width = c.height = 0; full = null; // libera cuanto antes la memoria del lienzo grande y del RAW
     if (!blob) throw new Error('blob');
     const filename = slug(S.tgtName || 'foto') + '-' + slug(S.look.name) + '.jpg';
     let done = false;

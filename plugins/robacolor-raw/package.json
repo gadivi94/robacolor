@@ -1,0 +1,19 @@
+{
+  "name": "robacolor-raw",
+  "version": "1.0.0",
+  "description": "Revelado RAW para Robacolor con el motor RAW de Apple (Core Image).",
+  "license": "UNLICENSED",
+  "private": true,
+  "files": [
+    "ios/Sources",
+    "Package.swift"
+  ],
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  },
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  }
+}
