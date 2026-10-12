@@ -53,7 +53,7 @@ Límites conocidos: la claridad no se aplica al vídeo; el selector de iOS puede
 Qué probar en el iPhone: que el vídeo se ve con el look al cargarlo, que suena al reproducir, que «Guardar» termina y el vídeo aparece en Fotos con sonido, y que no se salta fotogramas.
 
 ## Actualizar la app
-Los cambios llegan en la siguiente compilación: Codemagic → **Start new build** → **iOS (TestFlight)**. El número de compilación sube solo. Para cambiar la versión que se ve en la tienda (1.0.0 → 1.1.0), cambia `"version"` en `package.json`.
+Cada cambio que llega a la rama `main` lanza una compilación sola (si no arranca, en Codemagic → ajustes de la app → **Webhooks** se puede reactivar el aviso de GitHub). También se puede lanzar a mano: Codemagic → **Start new build** → **iOS (TestFlight)**. Al terminar hay que pulsar **Actualizar** en TestFlight. El número de compilación sube solo. Para cambiar la versión que se ve en la tienda (1.0.0 → 1.1.0), cambia `"version"` en `package.json`.
 
 ## Qué hay dentro
 
