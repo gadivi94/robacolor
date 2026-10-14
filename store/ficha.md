@@ -12,7 +12,7 @@ Roba el look de cualquier foto
 Elige una foto con los colores que te gustan y StealColor pega su look en tu foto o en tu vídeo. Todo se procesa en tu iPhone: tus fotos no salen de él.
 
 ## Palabras clave (máx. 100, separadas por comas, sin espacios)
-preset,filtro,lut,editor,edición,vídeo,revelado,etalonaje,paleta,tono,gradación,cine,película,color
+preset,filtro,lut,editor,edición,vídeo,revelado,etalonaje,paleta,tono,gradación,cine,película
 
 ## Descripción
 StealColor Photo copia el color de una foto que te gusta y lo aplica a la tuya o a tu vídeo.
