@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacidad · Robacolor</title>
+<meta name="description" content="Política de privacidad de Robacolor: las fotos y los vídeos se procesan en tu dispositivo y no se envían a ningún servidor.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: página de lectura de una columna (~65 caracteres), con la misma cabecera y los mismos tokens que la portada. */
+:root{
+  --bg:#ebecf1; --surface:#fafafc; --well:#eceef3; --ink:#16171c; --muted:#5a5c66; --line:rgba(20,24,40,.1);
+  --c5:#2c7f94;
+  --font-display:'Bricolage Grotesque','Avenir Next','Segoe UI',sans-serif;
+  --font-body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-data:'DM Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#0e0f13; --surface:#18191f; --well:#25262e; --ink:#f1f2f5; --muted:#a2a4ae; --line:rgba(255,255,255,.09); --c5:#45a3b8; color-scheme:dark}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px)}
+.wrap{max-width:760px;margin-inline:auto;padding-inline:20px;padding-block:0 40px}
+.nav{display:flex;align-items:center;gap:10px;padding-block:18px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:-.02em}
+.mark{width:32px;height:32px;border-radius:9px;background:#1c1c1c;padding:3px}
+.mark path{stroke:rgba(255,255,255,.3);stroke-width:.9}
+.nav a.back{margin-left:auto;font-size:14.5px;color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:999px}
+.nav a.back:hover{color:var(--ink);background:var(--well)}
+article{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:28px 24px;margin-top:12px}
+h1{font-family:var(--font-display);font-weight:720;font-size:clamp(32px,6vw,46px);letter-spacing:-.035em;line-height:1.02;margin:0 0 8px;text-wrap:balance}
+.date{font-family:var(--font-data);font-size:12.5px;color:var(--muted);margin:0 0 24px}
+h2{font-family:var(--font-display);font-weight:650;font-size:21px;letter-spacing:-.015em;margin:30px 0 8px}
+p,li{max-width:65ch}
+p{margin:0 0 12px}
+ul{padding-left:20px;margin:0 0 12px}
+a{color:var(--c5)}
+.mail{font-family:var(--font-data);font-size:15px;background:var(--well);padding:2px 8px;border-radius:6px;user-select:all}
+footer{padding-block:24px calc(24px + env(safe-area-inset-bottom,0px));font-size:14px;color:var(--muted)}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="nav">
+    <a class="brand" href="/">
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path fill="#d98c65" d="M21.1 10.6A24 24 0 0 1 42.9 10.6L37.7 20.9A12.5 12.5 0 0 0 26.3 20.9Z"></path><path fill="#f4c176" d="M50.3 8.9A24 24 0 0 1 61.2 27.7L49.7 28.3A12.5 12.5 0 0 0 44.0 18.5Z"></path><path fill="#215a70" d="M56.0 33.3A24 24 0 0 1 45.1 52.1L38.8 42.5A12.5 12.5 0 0 0 44.5 32.7Z"></path><path fill="#2f8296" d="M42.9 53.4A24 24 0 0 1 21.1 53.4L26.3 43.1A12.5 12.5 0 0 0 37.7 43.1Z"></path><path fill="#6f7fb0" d="M18.9 52.1A24 24 0 0 1 8.0 33.3L19.5 32.7A12.5 12.5 0 0 0 25.2 42.5Z"></path><path fill="#b0728c" d="M8.0 30.7A24 24 0 0 1 18.9 11.9L25.2 21.5A12.5 12.5 0 0 0 19.5 31.3Z"></path></svg>
+      Robacolor
+    </a>
+    <a class="back" href="/">Volver al inicio</a>
+  </header>
+
+  <article>
+    <h1>Política de privacidad</h1>
+    <p class="date">Última actualización: 14 de octubre de 2026</p>
+
+    <p>Robacolor es una herramienta para copiar los colores de una foto a otra. Está hecha para que tus imágenes no salgan de tu dispositivo: no las vemos, no las guardamos y no las compartimos con nadie.</p>
+
+    <h2>Tus fotos y vídeos</h2>
+    <p>Las fotos de referencia, tus fotos y tus vídeos se procesan en tu propio dispositivo, en la app de iPhone o en tu navegador. No se suben a ningún servidor en ningún momento.</p>
+
+    <h2>Qué se guarda y dónde</h2>
+    <ul>
+      <li><strong>Mis looks:</strong> los looks que guardas (su nombre, su paleta y una miniatura pequeña de la referencia) se guardan en tu dispositivo: en el almacenamiento de la app de iPhone o en el del navegador. Puedes borrarlos desde la propia app.</li>
+      <li><strong>Lo que exportas:</strong> las fotos, los vídeos y los LUT que guardas van a donde tú elijas (Fotos, Archivos o la carpeta de descargas).</li>
+    </ul>
+
+    <h2>Permisos de la app de iPhone</h2>
+    <ul>
+      <li><strong>Fotos:</strong> para que elijas qué imagen o vídeo abrir y para guardar el resultado en tu fototeca. La app solo ve lo que tú eliges.</li>
+      <li><strong>Cámara:</strong> solo si decides hacer una foto desde la app.</li>
+    </ul>
+
+    <h2>Cuentas, analítica y publicidad</h2>
+    <p>No hay registro ni cuentas. Robacolor no usa cookies de seguimiento, no muestra anuncios y no vende ni cede datos a terceros.</p>
+
+    <h2>La web</h2>
+    <p>Esta web se sirve a través de Cloudflare, que como cualquier servidor web procesa datos técnicos de la conexión (como la dirección IP) para entregar las páginas y protegerlas de abusos. Esos datos no se usan para identificarte ni para mostrarte publicidad.</p>
+
+    <h2>Menores</h2>
+    <p>Robacolor no recoge datos personales de nadie, tampoco de menores.</p>
+
+    <h2>Cambios y contacto</h2>
+    <p>Si esta política cambia, la fecha de arriba se actualizará. Para cualquier duda sobre privacidad, escribe a <span class="mail">hola@robacolor.com</span>.</p>
+  </article>
+
+  <footer>© 2026 @gadivi · Robacolor</footer>
+</div>
+</body>
+</html>

@@ -1,11 +1,28 @@
 # Robacolor · app de iPhone (Capacitor), compilada en la nube con Codemagic y subida a TestFlight.
-# Pasos completos en README.md. Se lanza a mano desde codemagic.io (Start new build → «iOS (TestFlight)»).
+# Pasos completos en README.md. Se compila sola con cada cambio que llega a la rama main;
+# también se puede lanzar a mano desde codemagic.io (Start new build → «iOS (TestFlight)»).
 
 workflows:
   ios:
     name: iOS (TestFlight)
     instance_type: mac_mini_m2
     max_build_duration: 60
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true   # si llegan dos cambios seguidos, solo se compila el último
+    when:
+      changeset:   # los cambios que solo tocan la web pública no compilan la app
+        excludes:
+          - 'site/**'
+          - '.github/**'
+          - 'scripts/build-site.mjs'
+          - 'tools/**'
+          - '**/*.md'
     integrations:
       app_store_connect: opos365_asc_admin   # la misma clave de App Store Connect que usas con opos365 y Radar de Plazas
     environment:
