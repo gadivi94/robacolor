@@ -37,7 +37,7 @@ for (const f of readdirSync("site").filter((f) => f.endsWith(".html"))) {
 
 // La app, envuelta en un documento completo
 let app = readFileSync("web/robacolor.html", "utf8");
-const titulo = (app.match(/<title>([^<]*)<\/title>/) || [null, "Robacolor"])[1];
+const titulo = (app.match(/<title>([^<]*)<\/title>/) || [null, "StealColor"])[1];
 app = app.replace(/<title>[^<]*<\/title>\s*/, "");
 const head = `<!doctype html>
 <html lang="es">
@@ -49,7 +49,7 @@ const head = `<!doctype html>
 <meta name="theme-color" content="#ebecf1" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0e0f13" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Robacolor">
+<meta name="apple-mobile-web-app-title" content="StealColor">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
