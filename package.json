@@ -2,7 +2,7 @@
   "name": "robacolor",
   "version": "1.0.0",
   "private": true,
-  "description": "Robacolor: copia los colores de una foto de referencia a la tuya. App de iPhone (Capacitor + Codemagic).",
+  "description": "StealColor Photo: copia los colores de una foto de referencia a la tuya. App de iPhone (Capacitor + Codemagic).",
   "scripts": {
     "prepare-www": "node scripts/prepare-www.mjs",
     "patch-native": "node scripts/patch-native.mjs"

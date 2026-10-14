@@ -1,6 +1,6 @@
-# Robacolor · app de iPhone
+# StealColor Photo · app de iPhone
 
-Robacolor copia los colores de una foto de referencia a tu foto o a tu vídeo y deja terminar el trabajo con herramientas de revelado y de etalonaje (ruedas Lift/Gamma/Gain, curvas, monitores de señal). Esta carpeta es la app de iPhone y iPad: la misma página que ya has probado, dentro de una app nativa (Capacitor 8), compilada en la nube con **Codemagic**, sin Mac. Es el mismo sistema que opos365 y Radar de Plazas.
+StealColor Photo (antes Robacolor) copia los colores de una foto de referencia a tu foto o a tu vídeo y deja terminar el trabajo con herramientas de revelado y de etalonaje (ruedas Lift/Gamma/Gain, curvas, monitores de señal). Esta carpeta es la app de iPhone y iPad: la misma página que ya has probado, dentro de una app nativa (Capacitor 8), compilada en la nube con **Codemagic**, sin Mac. Es el mismo sistema que opos365 y Radar de Plazas.
 
 **Qué añade la app respecto a la web**
 - **Guardar foto** la añade directamente a Fotos (si no das permiso, abre la hoja de compartir).
@@ -20,9 +20,9 @@ El proyecto vive en el repositorio `robacolor` de GitHub. Codemagic compila la r
 2. **Profiles → +** → *App Store Connect* (Distribution) → App ID `cat.gadivi.robacolor` → el certificado **Apple Distribution** que ya usas → nombre `Robacolor App Store` → Generate.
 
 ## 2. App Store Connect (appstoreconnect.apple.com)
-**Apps → + → Nueva app**: plataforma iOS · nombre `Robacolor` · idioma principal Español · Bundle ID `cat.gadivi.robacolor` · SKU `robacolor`.
+**Apps → + → Nueva app**: plataforma iOS · nombre `StealColor Photo` · idioma principal Español · Bundle ID `cat.gadivi.robacolor` · SKU `robacolor`.
 
-El nombre de la tienda tiene que ser único. Si `Robacolor` está cogido, usa por ejemplo `Robacolor: copia el color`. Debajo del icono seguirá poniendo «Robacolor».
+Debajo del icono del iPhone pone **StealColor**. Si la app ya está creada con otro nombre: App Store Connect → la app → **Información de la app** → *Nombre* → `StealColor Photo` → Guardar. El Bundle ID y el SKU no se ven fuera y se quedan igual.
 
 ## 3. Codemagic (codemagic.io)
 1. **Add application** → GitHub → `robacolor` → tipo *codemagic.yaml*.
@@ -67,17 +67,17 @@ Cada cambio que llega a la rama `main` lanza una compilación sola (si no arranc
 | `codemagic.yaml` | Receta de compilación y subida a TestFlight |
 | `capacitor.config.json` | Nombre de la app e identificador |
 
-## Web pública (robacolor.com)
+## Web pública (stealcolorphoto.com)
 
 La portada, la política de privacidad y la app en el navegador (`/app/`) se publican solas en Cloudflare Pages con cada cambio en `site/` o `web/` (GitHub → **Actions** → *Publica la web*). Para montarla en local: `node scripts/build-site.mjs` → carpeta `dist-web/`.
 
 Puesta en marcha (una sola vez):
 
-1. **Dominio:** Cloudflare → **Domain Registration** → **Register domains** → `robacolor.com`. Si eliges otro, en GitHub → Settings → Secrets and variables → Actions → pestaña *Variables* → `DOMINIO` = el que compres.
+1. **Dominio:** Cloudflare → **Domain Registration** → **Register domains** → `stealcolorphoto.com`. Si eliges otro, en GitHub → Settings → Secrets and variables → Actions → pestaña *Variables* → `DOMINIO` = el que compres.
 2. **Llave de Cloudflare:** My Profile → **API Tokens** → *Create Token* → *Create Custom Token* → permiso **Account · Cloudflare Pages · Edit** → *Create* y copia la llave (solo se ve una vez).
 3. **GitHub:** repositorio `robacolor` → Settings → Secrets and variables → **Actions** → *New repository secret* → nombre `CLOUDFLARE_API_TOKEN`, valor la llave.
-4. GitHub → **Actions** → *Publica la web* → **Run workflow**. En 1–2 minutos está en `https://robacolor.pages.dev` y, al rato, en `https://robacolor.com`.
-5. **Correo hola@robacolor.com** (sale en la privacidad): Cloudflare → robacolor.com → **Email** → **Email Routing** → regla `hola@robacolor.com` → tu Gmail.
+4. GitHub → **Actions** → *Publica la web* → **Run workflow**. En 1–2 minutos está en `https://stealcolorphoto.pages.dev` y, al rato, en `https://stealcolorphoto.com`.
+5. **Correo hola@stealcolorphoto.com** (sale en la privacidad): Cloudflare → stealcolorphoto.com → **Email** → **Email Routing** → regla `hola@stealcolorphoto.com` → tu Gmail.
 
-La URL de la privacidad (`https://robacolor.com/privacidad`) es la que pide App Store Connect al publicar la app.
+La URL de la privacidad (`https://stealcolorphoto.com/privacidad`) es la que pide App Store Connect al publicar la app.
 

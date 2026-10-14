@@ -1,4 +1,4 @@
-# Robacolor · app de iPhone (Capacitor), compilada en la nube con Codemagic y subida a TestFlight.
+# StealColor Photo (antes Robacolor) · app de iPhone (Capacitor), compilada en la nube con Codemagic y subida a TestFlight.
 # Pasos completos en README.md. Se compila sola con cada cambio que llega a la rama main;
 # también se puede lanzar a mano desde codemagic.io (Start new build → «iOS (TestFlight)»).
 

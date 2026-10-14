@@ -7,7 +7,7 @@ const ORIGEN = "web/robacolor.html";
 if (!existsSync(ORIGEN)) fallo("No existe " + ORIGEN);
 let pagina = readFileSync(ORIGEN, "utf8");
 
-const titulo = (pagina.match(/<title>([^<]*)<\/title>/) || [null, "Robacolor"])[1];
+const titulo = (pagina.match(/<title>([^<]*)<\/title>/) || [null, "StealColor"])[1];
 pagina = pagina.replace(/<title>[^<]*<\/title>\s*/, "");
 const enlaceFuentes = /<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>\s*/;
 if (!enlaceFuentes.test(pagina)) console.warn("⚠ No encuentro el enlace a Google Fonts (¿ha cambiado la página?)");

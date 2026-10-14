@@ -22,18 +22,18 @@ const ponerLista = (clave, valores) => {
   if (!p.includes(`<key>${clave}</key>`)) fallo("No he podido escribir " + clave);
 };
 
-poner("CFBundleDisplayName", "<string>Robacolor</string>");
+poner("CFBundleDisplayName", "<string>StealColor</string>");
 poner("CFBundleDevelopmentRegion", "<string>es</string>");
 poner("CFBundleShortVersionString", `<string>${VERSION}</string>`);
 poner("CFBundleVersion", `<string>${BUILD}</string>`);
 poner("ITSAppUsesNonExemptEncryption", "<false/>");
 poner("UIViewControllerBasedStatusBarAppearance", "<true/>");
 // Permisos: iOS enseña estos textos la primera vez que la app los necesita
-poner("NSPhotoLibraryAddUsageDescription", "<string>Robacolor guarda en Fotos las imágenes que editas.</string>");
-poner("NSPhotoLibraryUsageDescription", "<string>Robacolor abre las fotos que eliges para copiar sus colores y editarlas. No salen de tu dispositivo.</string>");
-poner("NSCameraUsageDescription", "<string>Robacolor usa la cámara solo si decides hacer una foto para editarla o usarla como referencia.</string>");
+poner("NSPhotoLibraryAddUsageDescription", "<string>StealColor guarda en Fotos las imágenes que editas.</string>");
+poner("NSPhotoLibraryUsageDescription", "<string>StealColor abre las fotos que eliges para copiar sus colores y editarlas. No salen de tu dispositivo.</string>");
+poner("NSCameraUsageDescription", "<string>StealColor usa la cámara solo si decides hacer una foto para editarla o usarla como referencia.</string>");
 // iPhone en vertical; iPad en cualquier orientación
 ponerLista("UISupportedInterfaceOrientations", ["UIInterfaceOrientationPortrait"]);
 ponerLista("UISupportedInterfaceOrientations~ipad", ["UIInterfaceOrientationPortrait", "UIInterfaceOrientationPortraitUpsideDown", "UIInterfaceOrientationLandscapeLeft", "UIInterfaceOrientationLandscapeRight"]);
 fs.writeFileSync(plist, p);
-console.log(`✔ iOS: Robacolor ${VERSION} (${BUILD}), permisos de Fotos y cámara, iPhone en vertical`);
+console.log(`✔ iOS: StealColor ${VERSION} (${BUILD}), permisos de Fotos y cámara, iPhone en vertical`);

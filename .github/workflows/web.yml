@@ -1,4 +1,4 @@
-# Robacolor · Publica la web (portada, privacidad y la app en /app/) en Cloudflare Pages
+# StealColor Photo · Publica la web (portada, privacidad y la app en /app/) en Cloudflare Pages
 # Se ejecuta sola cuando cambia la web o la app (o a mano: Actions → Publica la web → Run workflow).
 # Necesita el secreto CLOUDFLARE_API_TOKEN (permiso Cloudflare Pages · Edit). El dominio va en la variable DOMINIO.
 name: Publica la web
@@ -15,8 +15,8 @@ concurrency:
 
 env:
   CF_ACCOUNT_ID: c0c5d225523184f05949796fed095220
-  PROYECTO: robacolor
-  DOMINIO: ${{ vars.DOMINIO || 'robacolor.com' }}
+  PROYECTO: stealcolorphoto
+  DOMINIO: ${{ vars.DOMINIO || 'stealcolorphoto.com' }}
 
 jobs:
   publica:

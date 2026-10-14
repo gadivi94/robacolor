@@ -1,6 +1,6 @@
 {
-  "name": "Robacolor",
-  "short_name": "Robacolor",
+  "name": "StealColor Photo",
+  "short_name": "StealColor",
   "description": "Copia los colores de una foto que te gusta y aplícalos a tu foto o a tu vídeo.",
   "lang": "es",
   "start_url": "/app/",

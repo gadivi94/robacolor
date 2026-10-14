@@ -1,4 +1,4 @@
-<title>Robacolor</title>
+<title>StealColor</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
 <style>
 /* Layout: sala de color. Tres zonas —biblioteca (referencia y looks), visor y panel de ajustes— hechas con
@@ -310,7 +310,7 @@ footer p{margin:0;max-width:70ch}
 <div class="wrap">
   <header class="top">
     <svg class="mark" id="strip" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M21.1 10.6A24 24 0 0 1 42.9 10.6L37.7 20.9A12.5 12.5 0 0 0 26.3 20.9Z"></path><path d="M50.3 8.9A24 24 0 0 1 61.2 27.7L49.7 28.3A12.5 12.5 0 0 0 44.0 18.5Z"></path><path d="M56.0 33.3A24 24 0 0 1 45.1 52.1L38.8 42.5A12.5 12.5 0 0 0 44.5 32.7Z"></path><path d="M42.9 53.4A24 24 0 0 1 21.1 53.4L26.3 43.1A12.5 12.5 0 0 0 37.7 43.1Z"></path><path d="M18.9 52.1A24 24 0 0 1 8.0 33.3L19.5 32.7A12.5 12.5 0 0 0 25.2 42.5Z"></path><path d="M8.0 30.7A24 24 0 0 1 18.9 11.9L25.2 21.5A12.5 12.5 0 0 0 19.5 31.3Z"></path></svg>
-    <h1>Robacolor</h1>
+    <h1>StealColor</h1>
     <p>Copia los colores de una foto que te gusta y aplícalos a tu foto o a tu vídeo.</p>
   </header>
 
@@ -1575,7 +1575,7 @@ async function exportVideo(btn) {
 function cubeText(n) {
   const d = lut3d(S.tgt.stats, S.look, n), rows = new Array(n * n * n);
   for (let i = 0; i < rows.length; i++) rows[i] = d[i * 4].toFixed(6) + ' ' + d[i * 4 + 1].toFixed(6) + ' ' + d[i * 4 + 2].toFixed(6);
-  return 'TITLE "Robacolor ' + String(S.look.name).replace(/"/g, '') + '"\nLUT_3D_SIZE ' + n + '\nDOMAIN_MIN 0.0 0.0 0.0\nDOMAIN_MAX 1.0 1.0 1.0\n' + rows.join('\n') + '\n';
+  return 'TITLE "StealColor ' + String(S.look.name).replace(/"/g, '') + '"\nLUT_3D_SIZE ' + n + '\nDOMAIN_MIN 0.0 0.0 0.0\nDOMAIN_MAX 1.0 1.0 1.0\n' + rows.join('\n') + '\n';
 }
 // Un .zip mínimo (sin compresión) con un solo archivo: el visor solo deja descargar ciertos tipos, y .cube no es uno
 function zipOne(name, bytes) {
@@ -1591,7 +1591,7 @@ function zipOne(name, bytes) {
 }
 $('lutBtn').addEventListener('click', async () => {
   if (!S.look || !S.tgt) return;
-  const name = 'robacolor-' + slug(S.look.name), text = cubeText(33);
+  const name = 'stealcolor-' + slug(S.look.name), text = cubeText(33);
   if (NAT) { const r = await NAT.shareText(text, name + '.cube'); if (r === 'failed') toast('No se pudo exportar el LUT'); return; }
   if (OWN) { download(new Blob([text], { type: 'application/octet-stream' }), name + '.cube'); toast('LUT descargado'); return; }
   const dl = await downloadsP;
