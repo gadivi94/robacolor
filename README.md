@@ -66,3 +66,18 @@ Cada cambio que llega a la rama `main` lanza una compilación sola (si no arranc
 | `scripts/patch-native.mjs` | Pone nombre, versión, permisos y orientación en el proyecto iOS |
 | `codemagic.yaml` | Receta de compilación y subida a TestFlight |
 | `capacitor.config.json` | Nombre de la app e identificador |
+
+## Web pública (robacolor.com)
+
+La portada, la política de privacidad y la app en el navegador (`/app/`) se publican solas en Cloudflare Pages con cada cambio en `site/` o `web/` (GitHub → **Actions** → *Publica la web*). Para montarla en local: `node scripts/build-site.mjs` → carpeta `dist-web/`.
+
+Puesta en marcha (una sola vez):
+
+1. **Dominio:** Cloudflare → **Domain Registration** → **Register domains** → `robacolor.com`. Si eliges otro, en GitHub → Settings → Secrets and variables → Actions → pestaña *Variables* → `DOMINIO` = el que compres.
+2. **Llave de Cloudflare:** My Profile → **API Tokens** → *Create Token* → *Create Custom Token* → permiso **Account · Cloudflare Pages · Edit** → *Create* y copia la llave (solo se ve una vez).
+3. **GitHub:** repositorio `robacolor` → Settings → Secrets and variables → **Actions** → *New repository secret* → nombre `CLOUDFLARE_API_TOKEN`, valor la llave.
+4. GitHub → **Actions** → *Publica la web* → **Run workflow**. En 1–2 minutos está en `https://robacolor.pages.dev` y, al rato, en `https://robacolor.com`.
+5. **Correo hola@robacolor.com** (sale en la privacidad): Cloudflare → robacolor.com → **Email** → **Email Routing** → regla `hola@robacolor.com` → tu Gmail.
+
+La URL de la privacidad (`https://robacolor.com/privacidad`) es la que pide App Store Connect al publicar la app.
+

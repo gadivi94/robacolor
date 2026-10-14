@@ -15,6 +15,14 @@ workflows:
           include: true
           source: true
       cancel_previous_builds: true   # si llegan dos cambios seguidos, solo se compila el último
+    when:
+      changeset:   # los cambios que solo tocan la web pública no compilan la app
+        excludes:
+          - 'site/**'
+          - '.github/**'
+          - 'scripts/build-site.mjs'
+          - 'tools/**'
+          - '**/*.md'
     integrations:
       app_store_connect: opos365_asc_admin   # la misma clave de App Store Connect que usas con opos365 y Radar de Plazas
     environment:

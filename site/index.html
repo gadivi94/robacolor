@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Robacolor</title>
+<meta name="description" content="Roba el color de cualquier foto: Robacolor lee el look de una imagen que te gusta y lo aplica a tu foto o a tu vídeo, con herramientas de revelado y de gradación de color.">
+<meta name="theme-color" content="#ebecf1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0f13" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Robacolor">
+<meta property="og:description" content="Roba el color de cualquier foto y pégalo en la tuya o en tu vídeo.">
+<meta property="og:image" content="/img/despues.webp">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: una sola columna editorial. Arriba, la tesis en grande y la demostración real (referencia → paleta → antes/después).
+   Después, los tres pasos, las herramientas por familias, las capturas y la nota de privacidad.
+   Color: el mismo sistema que la app. Neutros con un leve sesgo frío y los seis tonos del anillo del logotipo (--c1…--c6);
+   cada familia de herramientas lleva siempre el suyo. El halo de arriba usa la paleta del look de ejemplo. */
+:root{
+  --bg:#ebecf1; --surface:#fafafc; --well:#eceef3; --ink:#16171c; --muted:#5a5c66;
+  --line:rgba(20,24,40,.1); --line-strong:rgba(20,24,40,.26); --stage:#cdcdcd;
+  --c1:#c96a40; --c2:#d99a3c; --c3:#a5607f; --c4:#5f70a8; --c5:#2c7f94; --c6:#1f5a6e; --on-c:#ffffff;
+  --accent:#b45a33; --on-accent:#ffffff; --aura-o:.55;
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 12px 32px rgba(20,24,40,.08);
+  --font-display:'Bricolage Grotesque','Avenir Next','Segoe UI',sans-serif;
+  --font-body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-data:'DM Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0e0f13; --surface:#18191f; --well:#25262e; --ink:#f1f2f5; --muted:#a2a4ae;
+    --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.24); --stage:#0a0a0a;
+    --c1:#e08a60; --c2:#e6ad57; --c3:#c27d9c; --c4:#8193cc; --c5:#45a3b8; --c6:#3e8aa1; --on-c:#111216;
+    --accent:#e8946b; --on-accent:#111216; --aura-o:.34; --shadow:0 0 0 1px rgba(255,255,255,.04);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px)}
+img{max-width:100%;display:block}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radius:6px}
+
+.aura{position:absolute;left:0;right:0;top:0;height:720px;pointer-events:none;z-index:0;opacity:var(--aura-o);
+  background:radial-gradient(36% 70% at 4% 0%,#d98c65,transparent 72%),radial-gradient(32% 60% at 34% 0%,#aa7b6e,transparent 72%),
+    radial-gradient(34% 66% at 68% 0%,#4d5a6c,transparent 72%),radial-gradient(32% 62% at 98% 0%,#7b6b6e,transparent 72%);
+  -webkit-mask-image:linear-gradient(#000 25%,transparent);mask-image:linear-gradient(#000 25%,transparent)}
+.wrap{position:relative;z-index:1;max-width:1180px;margin-inline:auto;padding-inline:20px}
+
+/* Cabecera */
+.nav{display:flex;align-items:center;gap:12px;padding-block:18px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--font-display);font-weight:700;font-size:21px;letter-spacing:-.02em}
+.mark{width:34px;height:34px;border-radius:10px;background:#1c1c1c;padding:3px;box-shadow:0 0 0 1px var(--line)}
+.mark path{stroke:rgba(255,255,255,.3);stroke-width:.9}
+.nav nav{margin-left:auto;display:flex;align-items:center;gap:4px}
+.nav nav a{text-decoration:none;font-size:14.5px;font-weight:500;color:var(--muted);padding:8px 12px;border-radius:999px}
+.nav nav a:hover{color:var(--ink);background:var(--well)}
+@media (max-width:760px){.nav nav a.sec-link{display:none}}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;border-radius:999px;padding:12px 20px;font-weight:600;font-size:15.5px;line-height:1.2;border:0;cursor:pointer;background:var(--well);color:var(--ink);transition:filter .12s,background-color .12s}
+.btn:hover{filter:brightness(.97)}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.small{padding:8px 15px;font-size:14px}
+.nav nav .btn.small{color:var(--on-accent)}
+.btn svg{width:17px;height:17px;flex:none}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}}
+
+/* Portada */
+.hero{display:grid;gap:40px;padding-block:44px 24px}
+.eyebrow{font-family:var(--font-data);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.eyebrow i{width:26px;height:8px;border-radius:99px;background:linear-gradient(90deg,var(--c1),var(--c2),var(--c3),var(--c4),var(--c5),var(--c6))}
+h1{font-family:var(--font-display);font-weight:760;font-size:clamp(44px,8.2vw,104px);line-height:.93;letter-spacing:-.045em;margin:0;text-wrap:balance;font-variation-settings:'opsz' 96}
+h1 em{font-style:normal;background:linear-gradient(100deg,#c9744a 10%,#b0687d 50%,#4f6b95 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
+@media (prefers-color-scheme: dark){h1 em{background-image:linear-gradient(100deg,#ef9a6e 10%,#d18aa6 50%,#8fa5dc 90%)}}
+.lede{font-size:clamp(17px,2vw,20px);color:var(--muted);max-width:40ch;margin:22px 0 0;text-wrap:pretty}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px;align-items:center}
+.soon{font-size:14px;color:var(--muted);display:inline-flex;align-items:center;gap:8px;padding:10px 4px}
+.soon svg{width:16px;height:16px}
+
+/* Demostración: referencia → paleta → antes y después */
+.demo{background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:14px;display:grid;gap:12px}
+.demo-top{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr);gap:14px;align-items:center}
+.ref{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:3/2;background:var(--stage)}
+.ref img{width:100%;height:100%;object-fit:cover}
+.chip{position:absolute;left:8px;bottom:8px;font-family:var(--font-data);font-size:10px;letter-spacing:.09em;text-transform:uppercase;line-height:1;background:rgba(0,0,0,.55);color:#fff;padding:6px 9px;border-radius:999px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.chip.r{left:auto;right:8px}
+.chip.t{bottom:auto;top:8px}
+.pal{display:grid;gap:8px;min-width:0}
+.pal p{margin:0;font-family:var(--font-data);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.sw{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px}
+.sw span{height:40px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px;font-family:var(--font-data);font-size:9px;color:rgba(255,255,255,.85)}
+.sw span:nth-child(n+5){color:rgba(0,0,0,.6)}
+.sw span:first-child{border-radius:9px 0 0 9px}.sw span:last-child{border-radius:0 9px 9px 0}
+.cmp{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:3/2;--split:50%;background:var(--stage);touch-action:pan-y}
+.cmp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cmp .before{clip-path:inset(0 calc(100% - var(--split)) 0 0)}
+.cmp input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize;-webkit-appearance:none;appearance:none}
+.cmp .handle{position:absolute;top:0;bottom:0;left:var(--split);width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.3);pointer-events:none}
+.cmp .handle::after{content:"";position:absolute;top:50%;left:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35);
+  background-image:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.55)),linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.55));background-size:2px 11px;background-repeat:no-repeat;background-position:13px 50%,21px 50%}
+.cmp input:focus-visible ~ .handle{box-shadow:0 0 0 3px rgba(0,0,0,.55)}
+@media (max-width:560px){.demo-top{grid-template-columns:minmax(0,110px) minmax(0,1fr);gap:10px}.sw span{font-size:0;height:34px}}
+.demo .cap{margin:0;font-size:13px;color:var(--muted);padding-inline:4px}
+@media (min-width:980px){
+  .hero{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:center;padding-block:64px 40px}
+}
+
+/* Secciones */
+section.block{padding-block:72px 8px}
+.kicker{font-family:var(--font-data);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+h2{font-family:var(--font-display);font-weight:720;font-size:clamp(30px,4.4vw,50px);line-height:1.02;letter-spacing:-.035em;margin:0;max-width:20ch;text-wrap:balance}
+.intro{color:var(--muted);max-width:58ch;margin:16px 0 0;font-size:17px}
+
+.steps{list-style:none;margin:36px 0 0;padding:0;display:grid;gap:14px}
+@media (min-width:820px){.steps{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.steps li{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:10px}
+.num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-data);font-size:13px;font-weight:500;background:var(--sc);color:var(--on-c)}
+.steps h3,.tool h3{font-family:var(--font-display);font-weight:650;font-size:21px;letter-spacing:-.015em;margin:4px 0 0}
+.steps p,.tool p{margin:0;color:var(--muted);font-size:15.5px}
+
+.tools{margin:36px 0 0;display:grid;gap:14px}
+@media (min-width:820px){.tools{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px}
+.tool .head{display:flex;align-items:center;gap:10px}
+.tool .head i{width:14px;height:14px;border-radius:4px;background:var(--g);flex:none}
+.tool .head i.round{border-radius:50%}
+.tool .head h3{margin:0}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 0;padding:0;list-style:none}
+.tags li{font-size:13.5px;background:var(--well);padding:5px 11px;border-radius:999px}
+.tags li.data{font-family:var(--font-data);font-size:12.5px}
+
+.shots{margin:36px 0 0;display:grid;gap:14px;align-items:start}
+@media (min-width:820px){.shots{grid-template-columns:minmax(0,2.6fr) minmax(0,1fr)}}
+.shots figure{margin:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+.shots img{border-radius:16px;border:1px solid var(--line);box-shadow:var(--shadow);width:100%;height:auto}
+.shots figcaption{font-size:13.5px;color:var(--muted)}
+.phone img{border-radius:26px;max-height:640px;width:auto;margin-inline:auto}
+
+.privacy{margin-top:72px;border-radius:24px;padding:36px 28px;background:linear-gradient(135deg,#1f5a6e,#2c3f63 55%,#5a3e5a);color:#f4f5f8;display:grid;gap:18px}
+.privacy h2{color:#fff;max-width:18ch}
+.privacy p{margin:0;max-width:60ch;color:rgba(255,255,255,.82);font-size:17px}
+.privacy .row{display:flex;flex-wrap:wrap;gap:8px}
+.privacy .row span{font-size:13.5px;background:rgba(255,255,255,.12);padding:6px 12px;border-radius:999px}
+.privacy a{color:#fff}
+
+.closing{padding-block:72px 24px;display:flex;flex-direction:column;align-items:flex-start;gap:20px}
+
+footer{border-top:1px solid var(--line);margin-top:40px;padding-block:24px calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;font-size:14px;color:var(--muted)}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--ink)}
+footer .sp{flex:1}
+</style>
+</head>
+<body>
+<div class="aura" aria-hidden="true"></div>
+<div class="wrap">
+  <header class="nav">
+    <a class="brand" href="/" aria-label="Robacolor, inicio">
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path fill="#d98c65" d="M21.1 10.6A24 24 0 0 1 42.9 10.6L37.7 20.9A12.5 12.5 0 0 0 26.3 20.9Z"></path><path fill="#f4c176" d="M50.3 8.9A24 24 0 0 1 61.2 27.7L49.7 28.3A12.5 12.5 0 0 0 44.0 18.5Z"></path><path fill="#215a70" d="M56.0 33.3A24 24 0 0 1 45.1 52.1L38.8 42.5A12.5 12.5 0 0 0 44.5 32.7Z"></path><path fill="#2f8296" d="M42.9 53.4A24 24 0 0 1 21.1 53.4L26.3 43.1A12.5 12.5 0 0 0 37.7 43.1Z"></path><path fill="#6f7fb0" d="M18.9 52.1A24 24 0 0 1 8.0 33.3L19.5 32.7A12.5 12.5 0 0 0 25.2 42.5Z"></path><path fill="#b0728c" d="M8.0 30.7A24 24 0 0 1 18.9 11.9L25.2 21.5A12.5 12.5 0 0 0 19.5 31.3Z"></path></svg>
+      Robacolor
+    </a>
+    <nav aria-label="Secciones">
+      <a class="sec-link" href="#como">Cómo funciona</a>
+      <a class="sec-link" href="#herramientas">Herramientas</a>
+      <a class="sec-link" href="#privacidad">Privacidad</a>
+      <a class="btn primary small" href="/app/">Abrir la app</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div>
+        <p class="eyebrow"><i aria-hidden="true"></i>Editor de color para fotos y vídeo</p>
+        <h1>Roba el <em>color</em> de cualquier foto.</h1>
+        <p class="lede">Elige una imagen con los colores que te gustan. Robacolor lee su look y lo pega en tu foto o en tu vídeo, listo para retocar.</p>
+        <div class="cta">
+          <a class="btn primary" href="/app/">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h9.5M8.8 4.3 12.5 8l-3.7 3.7"></path></svg>
+            Abrir en el navegador
+          </a>
+          <span class="soon"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11.2 8.5c0-1.6 1.3-2.3 1.4-2.4-.8-1.1-1.9-1.3-2.3-1.3-1-.1-2 .6-2.5.6s-1.3-.6-2.1-.6c-1.1 0-2.1.6-2.7 1.6-1.2 2-.3 5 .8 6.6.5.8 1.2 1.7 2 1.6.8 0 1.1-.5 2.1-.5s1.2.5 2.1.5c.9 0 1.4-.8 1.9-1.6.6-.9.8-1.7.9-1.8-.1 0-1.6-.6-1.6-2.7zM9.6 3.7c.4-.5.7-1.2.6-1.9-.6 0-1.4.4-1.8.9-.4.4-.7 1.1-.6 1.8.7.1 1.4-.3 1.8-.8z"></path></svg>App de iPhone, pronto en la App Store</span>
+        </div>
+      </div>
+
+      <figure class="demo" aria-label="Ejemplo: la paleta de un atardecer aplicada a un paisaje de día" style="margin:0">
+        <div class="demo-top">
+          <div class="ref"><img src="/img/ref.webp" width="600" height="400" alt="Foto de referencia: atardecer sobre el agua"><span class="chip">Referencia</span></div>
+          <div class="pal">
+            <p>Paleta extraída</p>
+            <div class="sw" aria-label="Colores de la referencia">
+              <span style="background:#081A23">081A23</span><span style="background:#213D4E">213D4E</span><span style="background:#4D5A6C">4D5A6C</span><span style="background:#7B6B6E">7B6B6E</span><span style="background:#AA7B6E">AA7B6E</span><span style="background:#D98C65">D98C65</span>
+            </div>
+          </div>
+        </div>
+        <div class="cmp" id="cmp">
+          <img src="/img/despues.webp" width="1200" height="800" alt="Paisaje con el look del atardecer aplicado">
+          <img class="before" src="/img/antes.webp" width="1200" height="800" alt="Paisaje original, de día">
+          <input type="range" id="cmpRange" min="0" max="100" step="0.1" value="50" aria-label="Comparar el antes y el después">
+          <div class="handle" aria-hidden="true"></div>
+          <span class="chip t">Antes</span><span class="chip t r">Después</span>
+        </div>
+        <figcaption class="cap">Arrastra la línea: a la izquierda la foto original, a la derecha con el look del atardecer.</figcaption>
+      </figure>
+    </div>
+
+    <section class="block" id="como" aria-labelledby="h-como">
+      <p class="kicker">Cómo funciona</p>
+      <h2 id="h-como">Tres pasos, y el look ya es tuyo.</h2>
+      <ol class="steps">
+        <li style="--sc:var(--c1)"><span class="num">1</span><h3>Sube la referencia</h3><p>Una foto con los colores que te gustan: una película, una cuenta que sigues, un atardecer. Robacolor saca su paleta, el tinte de sombras, medios y luces y cómo reparte la luz.</p></li>
+        <li style="--sc:var(--c5)"><span class="num">2</span><h3>Sube tu foto o tu vídeo</h3><p>El look se adapta a tu imagen, no se copia a ciegas: respeta la exposición y los colores de lo que fotografiaste y los lleva hacia los de la referencia.</p></li>
+        <li style="--sc:var(--c3)"><span class="num">3</span><h3>Ajusta y guarda</h3><p>Afina con la cantidad, la luz y el color, compara con la línea de antes y después y guarda en alta resolución, hasta 4096 px. Si te gusta, guárdalo como look para otras fotos.</p></li>
+      </ol>
+    </section>
+
+    <section class="block" id="herramientas" aria-labelledby="h-herr">
+      <p class="kicker">Herramientas</p>
+      <h2 id="h-herr">Revelado de foto y etalonaje de vídeo, en una sola app.</h2>
+      <p class="intro">Las herramientas que conoces de Lightroom y de DaVinci Resolve, ordenadas para el teléfono.</p>
+      <div class="tools">
+        <article class="tool" style="--g:var(--c2)">
+          <div class="head"><i aria-hidden="true"></i><h3>Revelado</h3></div>
+          <p>Los ajustes de siempre, con relleno desde el cero para ver de un vistazo qué has tocado.</p>
+          <ul class="tags"><li>Exposición</li><li>Contraste</li><li>Iluminaciones</li><li>Sombras</li><li>Blancos</li><li>Negros</li><li>Temperatura</li><li>Matiz</li><li>Intensidad</li><li>Curva de tonos</li><li>Claridad</li><li>Viñeteado</li><li>Granulado</li></ul>
+        </article>
+        <article class="tool" style="--g:linear-gradient(90deg,#e5484d,#f08c3a,#e9c53d,#4cb15a,#3bb7b0,#4a7fd6,#8a5bd6,#d15bb4)">
+          <div class="head"><i aria-hidden="true"></i><h3>Mezclador de color</h3></div>
+          <p>Tono, saturación y luminancia de cada color por separado, para cambiar el cielo sin tocar la piel.</p>
+          <ul class="tags"><li>Rojo</li><li>Naranja</li><li>Amarillo</li><li>Verde</li><li>Aguamarina</li><li>Azul</li><li>Púrpura</li><li>Magenta</li></ul>
+        </article>
+        <article class="tool" style="--g:conic-gradient(#ff3b3b,#ffd93b,#3bdc5a,#3bd6e0,#4a6bff,#e04ad6,#ff3b3b)">
+          <div class="head"><i class="round" aria-hidden="true"></i><h3>Ruedas y monitores</h3></div>
+          <p>Gradación como en una sala de color, midiendo el resultado con los monitores de señal.</p>
+          <ul class="tags"><li>Lift · Gamma · Gain</li><li>Equilibrio</li><li>Histograma</li><li>Forma de onda</li><li>Parade RGB</li><li>Vectorscopio con línea de piel</li></ul>
+        </article>
+        <article class="tool" style="--g:var(--c5)">
+          <div class="head"><i aria-hidden="true"></i><h3>Vídeo y LUT</h3></div>
+          <p>El look se aplica en directo mientras se reproduce. Marca un tramo y guárdalo con su sonido, o lleva el look a tu editor.</p>
+          <ul class="tags"><li class="data">00:00:00:00</li><li>Entrada y salida</li><li class="data">3840 × 2160</li><li>1080p · 720p</li><li>LUT .cube para DaVinci, Premiere y Final Cut</li></ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="h-caps">
+      <p class="kicker">Así se ve</p>
+      <h2 id="h-caps">En el ordenador y en el móvil.</h2>
+      <div class="shots">
+        <figure><img src="/img/captura-ordenador.webp" width="1600" height="956" alt="Robacolor en el ordenador: referencia, visor con antes y después y panel de ajustes"><figcaption>En pantalla grande: referencia, visor y ajustes a la vez.</figcaption></figure>
+        <figure class="phone"><img src="/img/captura-movil.webp" width="780" height="1688" alt="Robacolor en el móvil con las ruedas de color"><figcaption>En el móvil, el visor se queda fijo arriba.</figcaption></figure>
+      </div>
+    </section>
+
+    <section class="privacy" id="privacidad" aria-labelledby="h-priv">
+      <p class="kicker" style="color:rgba(255,255,255,.7);margin:0">Privacidad</p>
+      <h2 id="h-priv">Tus fotos no salen de tu dispositivo.</h2>
+      <p>Todo el procesado se hace en tu teléfono o en tu navegador. No hay cuentas, ni servidores que reciban tus imágenes, ni anuncios.</p>
+      <div class="row"><span>Sin registro</span><span>Sin cookies de seguimiento</span><span>Funciona sin conexión en el iPhone</span></div>
+      <p style="font-size:15px"><a href="/privacidad">Política de privacidad completa</a></p>
+    </section>
+
+    <section class="closing" aria-labelledby="h-fin">
+      <h2 id="h-fin">Pruébalo con tus fotos.</h2>
+      <a class="btn primary" href="/app/">Abrir Robacolor</a>
+    </section>
+  </main>
+
+  <footer>
+    <span>© 2026 @gadivi</span>
+    <span class="sp"></span>
+    <a href="/privacidad">Privacidad</a>
+    <a href="/app/">La app</a>
+  </footer>
+</div>
+<script>
+(() => {
+  const c = document.getElementById('cmp'), r = document.getElementById('cmpRange');
+  r.addEventListener('input', () => c.style.setProperty('--split', r.value + '%'));
+})();
+</script>
+</body>
+</html>

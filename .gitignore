@@ -4,3 +4,4 @@ ios/
 android/
 *.log
 .DS_Store
+/dist-web/
