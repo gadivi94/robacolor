@@ -3,26 +3,30 @@
 <style>
 /* Layout: sala de color. Tres zonas —biblioteca (referencia y looks), visor y panel de ajustes— hechas con
    superficies por capas (fondo, panel, hueco, relieve) en lugar de cajas con borde.
-   El gris es neutro a propósito, para no teñir la percepción del color de las fotos. El único color de la
-   interfaz es el acento, que se toma de la paleta del look en uso, igual que el anillo del logotipo.
+   Color: la paleta de marca son los seis tramos del anillo del logotipo (--c1…--c6); cada paso y cada grupo
+   de ajustes lleva el suyo, siempre el mismo. El acento de los controles y el halo de arriba salen del look
+   en uso. La mesa donde se ve la foto sigue en gris neutro, para no teñir la percepción del color.
    En móvil el visor se queda pegado arriba y los grupos de ajustes se eligen en una fila de pestañas. */
 :root{
-  --bg:#e6e6e6;
-  --surface:#f8f8f8;
-  --well:#ebebeb;
-  --well-hover:#dfdfdf;
+  --bg:#ebecf1;
+  --surface:#fafafc;
+  --well:#eceef3;
+  --well-hover:#e1e3eb;
   --raised:#ffffff;
   --stage:#cdcdcd;
-  --ink:#161616;
-  --muted:#5c5c5c;
-  --line:rgba(0,0,0,.09);
-  --line-strong:rgba(0,0,0,.26);
-  --track:#d3d3d3;
+  --ink:#16171c;
+  --muted:#5a5c66;
+  --line:rgba(20,24,40,.09);
+  --line-strong:rgba(20,24,40,.26);
+  --track:#d5d7df;
+  --c1:#c96a40; --c2:#d99a3c; --c3:#a5607f; --c4:#5f70a8; --c5:#2c7f94; --c6:#1f5a6e;
+  --on-c:#ffffff;
+  --aura-o:.5;
   --thumb:#ffffff;
   --veil:rgba(248,248,248,.74);
   --shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.05);
-  --accent:var(--acc-l,var(--ink));
-  --on-accent:var(--on-acc-l,var(--surface));
+  --accent:var(--acc-l,var(--c1));
+  --on-accent:var(--on-acc-l,#ffffff);
   --on-photo-bg:rgba(0,0,0,.55);
   --on-photo-fg:#ffffff;
   --knob-ring:#111111;
@@ -41,24 +45,32 @@
   --ic-down:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.5v8M4.8 7.5 8 10.7l3.2-3.2M2.5 10.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2'/%3E%3C/svg%3E");
   --ic-plus:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M8 3v10M3 8h10'/%3E%3C/svg%3E");
   --ic-reset:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.2 8a4.8 4.8 0 1 0 1.5-3.5M3 2.6v2.9h2.9'/%3E%3C/svg%3E");
+  --ic-mark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 2h8a1 1 0 0 1 1 1v11l-5-3-5 3V3a1 1 0 0 1 1-1z' fill='black'/%3E%3C/svg%3E");
   --ic-cube:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 1.8 13.5 5v6L8 14.2 2.5 11V5zM2.5 5 8 8.2 13.5 5M8 8.2v6'/%3E%3C/svg%3E");
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#101010; --surface:#1b1b1b; --well:#282828; --well-hover:#333333; --raised:#3d3d3d; --stage:#0a0a0a;
-    --ink:#f1f1f1; --muted:#a3a3a3; --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.24);
-    --track:#3b3b3b; --thumb:#f1f1f1; --veil:rgba(27,27,27,.72); --shadow:0 0 0 0 transparent;
-    --accent:var(--acc-d,var(--ink)); --on-accent:var(--on-acc-d,var(--bg)); --knob-ring:#f1f1f1; color-scheme:dark;
+    --bg:#0e0f13; --surface:#18191f; --well:#25262e; --well-hover:#30313a; --raised:#3b3c46; --stage:#0a0a0a;
+    --ink:#f1f2f5; --muted:#a2a4ae; --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.24);
+    --track:#383a44; --thumb:#f1f2f5; --veil:rgba(24,25,31,.72); --shadow:0 0 0 0 transparent;
+    --c1:#e08a60; --c2:#e6ad57; --c3:#c27d9c; --c4:#8193cc; --c5:#45a3b8; --c6:#3e8aa1; --on-c:#111216; --aura-o:.32;
+    --accent:var(--acc-d,var(--c1)); --on-accent:var(--on-acc-d,#111216); --knob-ring:#f1f2f5; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#101010; --surface:#1b1b1b; --well:#282828; --well-hover:#333333; --raised:#3d3d3d; --stage:#0a0a0a;
-  --ink:#f1f1f1; --muted:#a3a3a3; --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.24);
-  --track:#3b3b3b; --thumb:#f1f1f1; --veil:rgba(27,27,27,.72); --shadow:0 0 0 0 transparent;
-  --accent:var(--acc-d,var(--ink)); --on-accent:var(--on-acc-d,var(--bg)); --knob-ring:#f1f1f1; color-scheme:dark;
+  --bg:#0e0f13; --surface:#18191f; --well:#25262e; --well-hover:#30313a; --raised:#3b3c46; --stage:#0a0a0a;
+  --ink:#f1f2f5; --muted:#a2a4ae; --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.24);
+  --track:#383a44; --thumb:#f1f2f5; --veil:rgba(24,25,31,.72); --shadow:0 0 0 0 transparent;
+  --c1:#e08a60; --c2:#e6ad57; --c3:#c27d9c; --c4:#8193cc; --c5:#45a3b8; --c6:#3e8aa1; --on-c:#111216; --aura-o:.32;
+  --accent:var(--acc-d,var(--c1)); --on-accent:var(--on-acc-d,#111216); --knob-ring:#f1f2f5; color-scheme:dark;
 }
 
 *{box-sizing:border-box}
+.aura{position:absolute;left:0;right:0;top:0;height:460px;pointer-events:none;z-index:0;opacity:var(--aura-o);
+  background:radial-gradient(38% 80% at 6% 0%,var(--p5,#d98c65),transparent 72%),radial-gradient(34% 70% at 34% 0%,var(--p4,#aa7b6e),transparent 72%),
+    radial-gradient(36% 75% at 66% 0%,var(--p2,#4d5a6c),transparent 72%),radial-gradient(34% 70% at 96% 0%,var(--p3,#7b6b6e),transparent 72%);
+  -webkit-mask-image:linear-gradient(#000 20%,transparent);mask-image:linear-gradient(#000 20%,transparent)}
+.wrap{position:relative;z-index:1}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
 button,input{font:inherit;color:inherit}
 button{-webkit-tap-highlight-color:transparent}
@@ -106,9 +118,11 @@ button{-webkit-tap-highlight-color:transparent}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
 .panel-head{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;min-height:34px}
 .panel-head h2{font-family:var(--font-display);font-weight:600;font-size:16.5px;letter-spacing:-.01em;margin:0;display:flex;align-items:center;gap:9px}
-.step{font-family:var(--font-data);font-size:11px;font-weight:500;width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;background:var(--ink);color:var(--surface)}
+.step{font-family:var(--font-data);font-size:11px;font-weight:500;width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;flex:none;background:var(--sc,var(--ink));color:var(--on-c)}
+.step.s1{--sc:var(--c1)}.step.s2{--sc:var(--c5)}.step.s3{--sc:var(--c3)}.step.s4{--sc:var(--c4)}
+.step[data-ic]::before{width:12px;height:12px}
 .badge{font-family:var(--font-data);font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:var(--well);color:var(--muted);padding:3px 8px;border-radius:999px}
-.mat > .badge{position:absolute;top:calc(var(--pad) + 8px);left:calc(var(--pad) + 8px);z-index:1;background:var(--on-photo-bg);color:var(--on-photo-fg);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.mat > .badge{position:absolute;bottom:calc(var(--pad) + 8px);left:calc(var(--pad) + 8px);z-index:1;background:var(--on-photo-bg);color:var(--on-photo-fg);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .spacer{flex:1}
 .label{font-family:var(--font-data);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0}
 .hint{color:var(--muted);font-size:12.5px;margin:0}
@@ -121,18 +135,17 @@ button{-webkit-tap-highlight-color:transparent}
 .btn.primary:hover{background:var(--accent);filter:brightness(1.08)}
 .btn:disabled{opacity:.6;cursor:progress}
 [data-ic]::before{content:"";width:15px;height:15px;flex:none;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
-[data-ic="up"]{--ic:var(--ic-up)}[data-ic="down"]{--ic:var(--ic-down)}[data-ic="plus"]{--ic:var(--ic-plus)}[data-ic="reset"]{--ic:var(--ic-reset)}[data-ic="cube"]{--ic:var(--ic-cube)}
+[data-ic="up"]{--ic:var(--ic-up)}[data-ic="down"]{--ic:var(--ic-down)}[data-ic="plus"]{--ic:var(--ic-plus)}[data-ic="reset"]{--ic:var(--ic-reset)}[data-ic="cube"]{--ic:var(--ic-cube)}[data-ic="mark"]{--ic:var(--ic-mark)}
 .link{appearance:none;border:0;background:none;padding:5px 9px;border-radius:999px;font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;align-self:flex-start;display:inline-flex;align-items:center;gap:6px;transition:background-color .12s}
 .link::before{width:13px;height:13px}
 .link:hover{color:var(--ink);background:var(--well)}
 .sec-body > .link{margin-left:-9px}
-.panel-head > .link{align-self:center;margin-right:-9px}
 .btn:focus-visible,.link:focus-visible,.sw:focus-visible,.look-apply:focus-visible,.look-del:focus-visible,summary:focus-visible,.text:focus-visible,.wheel:focus-visible,.tabs button:focus-visible,.rail button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.btn,.link,.sw i{transition:none}}
 
 /* Mesa neutra donde se apoyan las fotos */
 .mat{--pad:12px;background:var(--stage);border-radius:12px;display:flex;justify-content:center;align-items:center;padding:var(--pad);position:relative}
-#tgtBadge{top:auto;bottom:calc(var(--pad) + 8px)}
+
 .mat.over{outline:2px dashed var(--ink);outline-offset:-6px}
 #refCanvas{display:block;aspect-ratio:var(--ar,1.5);width:min(100%,calc(var(--refh) * var(--ar,1.5)));height:auto;border-radius:4px}
 
@@ -204,13 +217,18 @@ details.sheet{border-top:1px solid var(--line)}
 .tools-head{padding:16px 16px 12px;display:flex;flex-direction:column;gap:12px}
 .rail{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding:2px 44px 2px 16px;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 36px),transparent)}
 .rail::-webkit-scrollbar{display:none}
-.rail button{flex:none;appearance:none;border:0;background:var(--well);color:var(--muted);border-radius:999px;padding:8px 14px;font-size:13.5px;font-weight:500;cursor:pointer}
+.rail button{flex:none;appearance:none;border:0;background:var(--well);color:var(--muted);border-radius:999px;padding:8px 14px 8px 12px;font-size:13.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
 .rail button[aria-selected="true"]{background:var(--ink);color:var(--surface)}
 .sec{border-top:1px solid var(--line)}
-.sec > summary,details.sheet > summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;font-weight:600;font-size:13.5px}
+.sec > summary,details.sheet > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 16px;font-weight:600;font-size:13.5px}
+.gdot{width:10px;height:10px;border-radius:3px;flex:none;background:var(--g,var(--muted))}
+[data-k="scope"]{--g:var(--c4)}[data-k="look"]{--g:var(--c1)}[data-k="light"]{--g:var(--c2)}[data-k="color"]{--g:var(--c3)}[data-k="curve"]{--g:var(--c5)}[data-k="fx"]{--g:var(--c6)}
+[data-k="mix"]{--g:linear-gradient(90deg,#e5484d,#f08c3a,#e9c53d,#4cb15a,#3bb7b0,#4a7fd6,#8a5bd6,#d15bb4)}
+[data-k="wheels"]{--g:conic-gradient(#ff3b3b,#ffd93b,#3bdc5a,#3bd6e0,#4a6bff,#e04ad6,#ff3b3b)}
+[data-k="wheels"] .gdot{border-radius:50%}
 details.sheet > summary{padding:12px 0 10px}
 .sec > summary::-webkit-details-marker,details.sheet > summary::-webkit-details-marker{display:none}
-.sec > summary::after,details.sheet > summary::after{content:"";width:7px;height:7px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;margin-right:3px}
+.sec > summary::after,details.sheet > summary::after{content:"";margin-left:auto;width:7px;height:7px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;margin-right:3px}
 .sec[open] > summary::after,details.sheet[open] > summary::after{transform:rotate(45deg)}
 @media (prefers-reduced-motion:reduce){.sec > summary::after,details.sheet > summary::after{transition:none}}
 .sec-body{padding:2px 16px 16px;display:flex;flex-direction:column;gap:12px}
@@ -285,8 +303,10 @@ footer p{margin:0;max-width:70ch}
 .sheet-out{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;padding:calc(18px + env(safe-area-inset-top,0px)) 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:14px}
 .sheet-out img,.sheet-out video{max-width:100%;max-height:72vh;border-radius:8px}
 .sheet-out p{margin:0;max-width:52ch;text-align:center}
+.out-row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
 </style>
 
+<div class="aura" id="aura" aria-hidden="true"></div>
 <div class="wrap">
   <header class="top">
     <svg class="mark" id="strip" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M21.1 10.6A24 24 0 0 1 42.9 10.6L37.7 20.9A12.5 12.5 0 0 0 26.3 20.9Z"></path><path d="M50.3 8.9A24 24 0 0 1 61.2 27.7L49.7 28.3A12.5 12.5 0 0 0 44.0 18.5Z"></path><path d="M56.0 33.3A24 24 0 0 1 45.1 52.1L38.8 42.5A12.5 12.5 0 0 0 44.5 32.7Z"></path><path d="M42.9 53.4A24 24 0 0 1 21.1 53.4L26.3 43.1A12.5 12.5 0 0 0 37.7 43.1Z"></path><path d="M18.9 52.1A24 24 0 0 1 8.0 33.3L19.5 32.7A12.5 12.5 0 0 0 25.2 42.5Z"></path><path d="M8.0 30.7A24 24 0 0 1 18.9 11.9L25.2 21.5A12.5 12.5 0 0 0 19.5 31.3Z"></path></svg>
@@ -298,7 +318,7 @@ footer p{margin:0;max-width:70ch}
     <div class="colA">
       <section class="panel" id="p-ref" aria-labelledby="h-ref">
         <div class="panel-head">
-          <h2 id="h-ref"><span class="step">1</span>Referencia</h2>
+          <h2 id="h-ref"><span class="step s1">1</span>Referencia</h2>
           <span class="spacer"></span>
           <button class="btn" type="button" id="refBtn" data-ic="up" aria-label="Subir una foto de referencia">Subir</button>
           <input class="sr" type="file" id="refFile" accept="image/*" tabindex="-1" aria-hidden="true">
@@ -318,7 +338,7 @@ footer p{margin:0;max-width:70ch}
             </div>
             <div class="block">
               <p class="label">Histograma de luz</p>
-              <svg class="histo" viewBox="0 0 256 64" preserveAspectRatio="none" role="img" aria-label="Reparto de luz de la referencia"><path id="histoPath" d="" fill="currentColor" fill-opacity=".85"></path></svg>
+              <svg class="histo" viewBox="0 0 256 64" preserveAspectRatio="none" role="img" aria-label="Reparto de luz de la referencia"><defs><linearGradient id="histoGrad"><stop offset="0"></stop><stop offset=".2"></stop><stop offset=".4"></stop><stop offset=".6"></stop><stop offset=".8"></stop><stop offset="1"></stop></linearGradient></defs><path id="histoPath" d="" fill="url(#histoGrad)"></path></svg>
               <div class="axis"><span>Sombras</span><span>Luces</span></div>
             </div>
             <dl class="metrics" id="metrics"></dl>
@@ -328,7 +348,7 @@ footer p{margin:0;max-width:70ch}
 
       <section class="panel" id="p-stage" aria-labelledby="h-tgt">
         <div class="panel-head">
-          <h2 id="h-tgt"><span class="step">2</span>Tu foto o vídeo</h2>
+          <h2 id="h-tgt"><span class="step s2">2</span>Tu foto o vídeo</h2>
           <span class="spacer"></span>
           <button class="btn" type="button" id="tgtBtn" data-ic="up" aria-label="Subir una foto o un vídeo">Subir</button>
           <button class="btn primary" type="button" id="saveBtn" data-ic="down" aria-label="Guardar el resultado">Guardar</button>
@@ -366,24 +386,24 @@ footer p{margin:0;max-width:70ch}
     <section class="panel tools" id="p-tools" aria-labelledby="h-adj">
       <div class="tools-head">
         <div class="panel-head">
-          <h2 id="h-adj"><span class="step">3</span>Ajustes</h2>
+          <h2 id="h-adj"><span class="step s3">3</span>Ajustes</h2>
           <span class="spacer"></span>
-          <button class="link" type="button" id="lutBtn" data-ic="cube">Exportar LUT</button>
+          <button class="btn" type="button" id="lutBtn" data-ic="cube">Exportar LUT</button>
         </div>
         <div class="rail" id="rail" role="tablist" aria-label="Grupo de ajustes">
-          <button type="button" role="tab" data-k="look" aria-selected="true">Look</button>
-          <button type="button" role="tab" data-k="light" aria-selected="false">Luz</button>
-          <button type="button" role="tab" data-k="color" aria-selected="false">Color</button>
-          <button type="button" role="tab" data-k="curve" aria-selected="false">Curva</button>
-          <button type="button" role="tab" data-k="mix" aria-selected="false">Mezclador</button>
-          <button type="button" role="tab" data-k="wheels" aria-selected="false">Ruedas</button>
-          <button type="button" role="tab" data-k="fx" aria-selected="false">Efectos</button>
-          <button type="button" role="tab" data-k="scope" aria-selected="false">Monitor</button>
+          <button type="button" role="tab" data-k="look" aria-selected="true"><i class="gdot"></i>Look</button>
+          <button type="button" role="tab" data-k="light" aria-selected="false"><i class="gdot"></i>Luz</button>
+          <button type="button" role="tab" data-k="color" aria-selected="false"><i class="gdot"></i>Color</button>
+          <button type="button" role="tab" data-k="curve" aria-selected="false"><i class="gdot"></i>Curva</button>
+          <button type="button" role="tab" data-k="mix" aria-selected="false"><i class="gdot"></i>Mezclador</button>
+          <button type="button" role="tab" data-k="wheels" aria-selected="false"><i class="gdot"></i>Ruedas</button>
+          <button type="button" role="tab" data-k="fx" aria-selected="false"><i class="gdot"></i>Efectos</button>
+          <button type="button" role="tab" data-k="scope" aria-selected="false"><i class="gdot"></i>Monitor</button>
         </div>
       </div>
 
       <details class="sec" data-k="scope" open>
-        <summary>Monitor de señal</summary>
+        <summary><i class="gdot"></i>Monitor de señal</summary>
         <div class="sec-body">
           <div class="tabs small" role="tablist" aria-label="Monitor de señal del resultado">
             <button type="button" role="tab" id="sc-hist" aria-selected="true">Histograma</button>
@@ -399,19 +419,19 @@ footer p{margin:0;max-width:70ch}
         </div>
       </details>
       <details class="sec cur" data-k="look" open>
-        <summary>Look</summary>
+        <summary><i class="gdot"></i>Look</summary>
         <div class="sec-body"><div class="ctls" id="c-look"></div></div>
       </details>
       <details class="sec" data-k="light" open>
-        <summary>Luz</summary>
+        <summary><i class="gdot"></i>Luz</summary>
         <div class="sec-body"><div class="ctls" id="c-light"></div></div>
       </details>
       <details class="sec" data-k="color" open>
-        <summary>Color</summary>
+        <summary><i class="gdot"></i>Color</summary>
         <div class="sec-body"><div class="ctls" id="c-color"></div></div>
       </details>
       <details class="sec" data-k="curve">
-        <summary>Curva de tonos</summary>
+        <summary><i class="gdot"></i>Curva de tonos</summary>
         <div class="sec-body">
           <svg class="curve" id="curve" viewBox="-5 -5 110 110" role="group" aria-label="Curva de tonos">
             <rect class="c-bg" x="0" y="0" width="100" height="100" rx="3"></rect>
@@ -426,7 +446,7 @@ footer p{margin:0;max-width:70ch}
         </div>
       </details>
       <details class="sec" data-k="mix">
-        <summary>Mezclador de color</summary>
+        <summary><i class="gdot"></i>Mezclador de color</summary>
         <div class="sec-body">
           <div class="tabs" role="tablist" aria-label="Qué ajustar de cada color">
             <button type="button" role="tab" id="t-hue" aria-controls="g-hue" aria-selected="true">Tono</button>
@@ -440,7 +460,7 @@ footer p{margin:0;max-width:70ch}
         </div>
       </details>
       <details class="sec" data-k="wheels">
-        <summary>Ruedas de color</summary>
+        <summary><i class="gdot"></i>Ruedas de color</summary>
         <div class="sec-body">
           <div class="wheels">
             <div class="wheel-wrap"><div class="wheel" id="w-sh" tabindex="0" role="group" aria-label="Color de Lift (sombras). Flechas izquierda y derecha cambian el tono; arriba y abajo, la saturación."><i class="knob"></i></div><span class="w-name">Lift</span><span class="w-val" id="wv-sh">0</span><div class="ctl"><input type="range" id="wm-sh" min="-100" max="100" value="0" aria-label="Nivel de Lift (sombras)"></div></div>
@@ -453,14 +473,14 @@ footer p{margin:0;max-width:70ch}
         </div>
       </details>
       <details class="sec" data-k="fx">
-        <summary>Efectos</summary>
+        <summary><i class="gdot"></i>Efectos</summary>
         <div class="sec-body"><div class="ctls" id="c-fx"></div><p class="hint" id="fxNote" hidden>En vídeo no se aplica la claridad.</p></div>
       </details>
       <div class="sec tip"><div class="sec-body"><p class="hint" data-touch="Doble toque en un control para devolverlo a su valor inicial.">Doble clic en un control para devolverlo a su valor inicial.</p><button class="link" type="button" id="resetBtn" data-ic="reset">Restablecer todo</button></div></div>
     </section>
 
     <section class="panel" id="p-looks" aria-labelledby="h-looks">
-      <div class="panel-head"><h2 id="h-looks">Mis looks</h2></div>
+      <div class="panel-head"><h2 id="h-looks"><span class="step s4" data-ic="mark" aria-hidden="true"></span>Mis looks</h2></div>
       <div class="save-row">
         <label class="sr" for="lookName">Nombre del look</label>
         <input class="text" type="text" id="lookName" maxlength="40" placeholder="Nombre del look" autocomplete="off">
@@ -479,7 +499,11 @@ footer p{margin:0;max-width:70ch}
   <img id="outImg" alt="Foto editada">
   <video id="outVid" controls playsinline hidden></video>
   <p id="outMsg">Mantén pulsada la imagen (o haz clic derecho) y elige «Guardar imagen».</p>
-  <button class="btn primary" type="button" id="outClose">Cerrar</button>
+  <div class="out-row">
+    <button class="btn primary" type="button" id="outShare" data-ic="down" hidden>Guardar o compartir</button>
+    <button class="btn" type="button" id="outDl" data-ic="down" hidden>Descargar</button>
+    <button class="btn" type="button" id="outClose">Cerrar</button>
+  </div>
 </div>
 
 <script>
@@ -1079,6 +1103,9 @@ function renderLook() {
     root.setProperty('--acc-l', hex(labToRgb(0.52, top.a * k, top.b * k))); root.setProperty('--on-acc-l', '#ffffff');
     root.setProperty('--acc-d', hex(labToRgb(0.8, top.a * k, top.b * k))); root.setProperty('--on-acc-d', '#111111');
   } else for (const v of ['--acc-l', '--on-acc-l', '--acc-d', '--on-acc-d']) root.removeProperty(v);
+  // Halo y relleno del histograma: los tonos de la paleta, de oscuro a claro
+  const stops = document.querySelectorAll('#histoGrad stop');
+  lk.palette.forEach((h, k) => { root.setProperty('--p' + k, h); if (stops[k]) stops[k].setAttribute('stop-color', h); });
   for (const h of lk.palette) {
     const b = el('button', 'sw'); b.type = 'button'; b.title = 'Copiar ' + h; b.setAttribute('aria-label', 'Copiar color ' + h);
     const c = el('i'); c.style.background = h; const s = el('span'); s.textContent = h.slice(1);
@@ -1300,6 +1327,10 @@ function copy(text) {
 }
 
 /* ---------- Guardar la foto a tamaño completo ---------- */
+// En su propia web (fuera de Claude y de la app de iPhone) se guarda como en cualquier página: descarga en el ordenador
+// y, en el móvil, la hoja de compartir del sistema, que deja guardar en Fotos
+const OWN = !window.claude && !NAT, COARSE = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+function download(blob, filename) { const a = document.createElement('a'), u = URL.createObjectURL(blob); a.href = u; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); }
 let downloadsP;
 try { downloadsP = window.claude && window.claude.use ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null); } catch (e) { downloadsP = Promise.resolve(null); }
 const slug = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'foto';
@@ -1332,17 +1363,26 @@ $('saveBtn').addEventListener('click', async () => {
       try { await dl.save({ filename, data: blob }); done = true; toast('Foto guardada · ' + w + ' × ' + h + ' px'); }
       catch (e) { if (e && (e.code === 'declined' || e.code === 'rate_limited')) { done = true; toast(e.code === 'declined' ? 'Guardado cancelado' : 'Espera un momento y vuelve a intentarlo'); } }
     }
-    if (!done) showOut(blob, false);
+    if (!done && OWN && !COARSE) { download(blob, filename); done = true; toast('Foto descargada · ' + w + ' × ' + h + ' px'); }
+    if (!done) showOut(blob, false, filename);
   } catch (e) { toast('No se pudo generar la foto. Prueba con una imagen más pequeña.'); }
   btn.textContent = 'Guardar'; btn.disabled = false;
 });
 // Si no hay otra forma de guardar, se enseña el resultado para guardarlo a mano
-function showOut(blob, video) {
+const OUT = { blob: null, name: '', file: null };
+function showOut(blob, video, filename) {
   const im = $('outImg'), vd = $('outVid'), url = URL.createObjectURL(blob);
   im.hidden = video; vd.hidden = !video; (video ? vd : im).src = url;
-  $('outMsg').textContent = video ? 'Mantén pulsado el vídeo (o haz clic derecho) y elige «Guardar vídeo».' : 'Mantén pulsada la imagen (o haz clic derecho) y elige «Guardar imagen».';
-  $('out').hidden = false; $('outClose').focus();
+  let file = null; try { file = OWN && filename ? new File([blob], filename, { type: blob.type }) : null; } catch (e) { file = null; }
+  const share = !!(file && navigator.canShare && navigator.canShare({ files: [file] }));
+  Object.assign(OUT, { blob, name: filename || '', file });
+  $('outShare').hidden = !share; $('outDl').hidden = !(OWN && filename);
+  $('outMsg').textContent = share ? 'Pulsa «Guardar o compartir» y elige «Guardar ' + (video ? 'vídeo' : 'imagen') + '» para llevarl' + (video ? 'o' : 'a') + ' a Fotos.'
+    : video ? 'Mantén pulsado el vídeo (o haz clic derecho) y elige «Guardar vídeo».' : 'Mantén pulsada la imagen (o haz clic derecho) y elige «Guardar imagen».';
+  $('out').hidden = false; (share ? $('outShare') : $('outClose')).focus();
 }
+$('outShare').addEventListener('click', () => { if (OUT.file) navigator.share({ files: [OUT.file] }).catch(() => { /* cancelado */ }); });
+$('outDl').addEventListener('click', () => { if (OUT.blob) download(OUT.blob, OUT.name); });
 $('outClose').addEventListener('click', () => { for (const m of [$('outImg'), $('outVid')]) { if (m.src) URL.revokeObjectURL(m.src); m.removeAttribute('src'); } $('outVid').load(); $('out').hidden = true; $('saveBtn').focus(); });
 
 /* ---------- Vídeo: el look se aplica en la GPU con una tabla 3D, fotograma a fotograma ---------- */
@@ -1525,7 +1565,8 @@ async function exportVideo(btn) {
       try { await dl.save({ filename, data: blob }); done = true; toast('Vídeo guardado' + dims, ms); }
       catch (e) { if (e && (e.code === 'declined' || e.code === 'rate_limited')) { done = true; toast(e.code === 'declined' ? 'Guardado cancelado' : 'Espera un momento y vuelve a intentarlo'); } }
     }
-    if (!done) showOut(blob, true);
+    if (!done && OWN && !COARSE) { download(blob, filename); done = true; toast('Vídeo descargado' + dims, ms); }
+    if (!done) showOut(blob, true, filename);
   }
   btn.textContent = 'Guardar'; btn.disabled = false;
 }
@@ -1552,6 +1593,7 @@ $('lutBtn').addEventListener('click', async () => {
   if (!S.look || !S.tgt) return;
   const name = 'robacolor-' + slug(S.look.name), text = cubeText(33);
   if (NAT) { const r = await NAT.shareText(text, name + '.cube'); if (r === 'failed') toast('No se pudo exportar el LUT'); return; }
+  if (OWN) { download(new Blob([text], { type: 'application/octet-stream' }), name + '.cube'); toast('LUT descargado'); return; }
   const dl = await downloadsP;
   if (!dl) { toast('Aquí no se pueden descargar archivos'); return; }
   try { await dl.save({ filename: name + '.zip', data: zipOne(name + '.cube', new TextEncoder().encode(text)) }); toast('LUT guardado (dentro del .zip)'); }
