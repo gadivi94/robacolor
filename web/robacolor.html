@@ -349,7 +349,7 @@ footer p{margin:0;max-width:70ch}
           <input class="sr" type="file" id="refFile" accept="image/*" tabindex="-1" aria-hidden="true">
         </div>
         <div class="mat" id="refDrop"><span class="badge" id="refBadge">Ejemplo</span><canvas id="refCanvas" role="img" aria-label="Foto de referencia"></canvas></div>
-        <p class="hint" data-touch="La foto con los colores que quieres copiar.">La foto con los colores que quieres copiar. Puedes arrastrarla aquí.</p>
+        <p class="hint" data-touch="La foto con los colores que quieres copiar.">La foto con los colores que quieres copiar. Puedes arrastrarla aquí o pegarla.</p>
         <div class="pairrow" id="pairRow">
           <button class="btn small" type="button" id="origBtn" data-ic="plus">Añadir la original</button>
           <p class="hint" id="pairInfo">¿Tienes esa misma foto sin editar? Súbela y el look se copia exacto.</p>
@@ -2002,7 +2002,7 @@ document.addEventListener('paste', e => {
   const it = [...((e.clipboardData && e.clipboardData.items) || [])].find(i => i.type.startsWith('image/'));
   if (!it) return; e.preventDefault(); const f = it.getAsFile(); if (f) refFromBlob(f, 'Pegada').catch(() => toast('No se pudo leer la imagen pegada'));
 });
-if (!window.claude && navigator.clipboard && navigator.clipboard.read) {
+if (!window.claude && COARSE && navigator.clipboard && navigator.clipboard.read) { // en el ordenador basta con pegar (Cmd/Ctrl+V)
   $('pasteBtn').hidden = false;
   $('pasteBtn').addEventListener('click', async () => {
     try {
