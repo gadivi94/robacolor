@@ -28,9 +28,11 @@ poner("CFBundleShortVersionString", `<string>${VERSION}</string>`);
 poner("CFBundleVersion", `<string>${BUILD}</string>`);
 poner("ITSAppUsesNonExemptEncryption", "<false/>");
 poner("UIViewControllerBasedStatusBarAppearance", "<true/>");
+// Con acceso limitado a Fotos, iOS no vuelve a preguntar cada vez que se abre la app
+poner("PHPhotoLibraryPreventAutomaticLimitedAccessAlert", "<true/>");
 // Permisos: iOS enseña estos textos la primera vez que la app los necesita
-poner("NSPhotoLibraryAddUsageDescription", "<string>StealColor guarda en Fotos las imágenes que editas.</string>");
-poner("NSPhotoLibraryUsageDescription", "<string>StealColor abre las fotos que eliges para copiar sus colores y editarlas. No salen de tu dispositivo.</string>");
+poner("NSPhotoLibraryAddUsageDescription", "<string>StealColor guarda en Fotos las fotos y los vídeos que editas.</string>");
+poner("NSPhotoLibraryUsageDescription", "<string>StealColor abre las fotos que eliges y tu última captura de pantalla para copiar sus colores. No salen de tu dispositivo.</string>");
 poner("NSCameraUsageDescription", "<string>StealColor usa la cámara solo si decides hacer una foto para editarla o usarla como referencia.</string>");
 // iPhone en vertical; iPad en cualquier orientación
 ponerLista("UISupportedInterfaceOrientations", ["UIInterfaceOrientationPortrait"]);

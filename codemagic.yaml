@@ -14,6 +14,9 @@ workflows:
         - pattern: main
           include: true
           source: true
+        - pattern: nativo          # rama con la capa nativa (HEIC, RAW, vídeo rápido, compartir); se compila sola para probarla
+          include: true
+          source: true
       cancel_previous_builds: true   # si llegan dos cambios seguidos, solo se compila el último
     when:
       changeset:   # los cambios que solo tocan la web pública no compilan la app
@@ -30,6 +33,8 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: cat.gadivi.robacolor
+      vars:
+        SHARE_EXTENSION: "0"   # "1" añade «Compartir → StealColor» (antes hay que crear el App Group en Apple Developer, ver README)
       node: 22
       xcode: latest
     scripts:
@@ -45,6 +50,14 @@ workflows:
         script: |
           npx cap sync ios
           node scripts/patch-native.mjs
+      - name: Extensión «Compartir» (opcional)
+        script: |
+          if [ "$SHARE_EXTENSION" = "1" ]; then
+            gem list -i xcodeproj >/dev/null 2>&1 || gem install xcodeproj --no-document
+            ruby scripts/add-share-extension.rb
+          else
+            echo "Sin extensión de compartir (SHARE_EXTENSION=0)"
+          fi
       - name: Aplicar la firma
         script: xcode-project use-profiles
       - name: Compilar el IPA

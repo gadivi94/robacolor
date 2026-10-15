@@ -67,6 +67,30 @@ Cada cambio que llega a la rama `main` lanza una compilación sola (si no arranc
 | `codemagic.yaml` | Receta de compilación y subida a TestFlight |
 | `capacitor.config.json` | Nombre de la app e identificador |
 
+## Rama `nativo`: HEIC, RAW, vídeo rápido y compartir
+
+Esta rama añade a la app de iPhone el plugin `plugins/robacolor-raw` (Swift):
+
+- **Originales**: «Subir» abre Fotos o Archivos y la app recibe el archivo tal cual (HEIC, ProRAW/DNG y otros RAW, vídeo sin recomprimir).
+- **Guardar foto**: el iPhone aplica el look (una tabla 3D de 64³ que calcula la web), los efectos, el enderezado y el recorte al original a resolución completa con Core Image, y la guarda en HEIC en Fotos con su fecha, ubicación y datos de cámara.
+- **Guardar vídeo**: con AVFoundation, mucho más rápido que en tiempo real y sin tener la app delante; sale en SDR (Rec. 709).
+- **Captura**: botón en «Referencia» que usa tu última captura de pantalla.
+- **Aplicar a varias fotos**: con originales, en HEIC y a resolución completa.
+- Claridad, viñeteado y grano se aproximan con filtros de Core Image; el color es el mismo que en la vista.
+
+Codemagic compila la rama sola en cada cambio y la sube a TestFlight como cualquier otra compilación. Si algo falla al compilar, la rama `main` sigue igual. Sustituye a la antigua rama `raw`.
+
+### Compartir → StealColor (opcional)
+
+Permite mandar una imagen a la app desde Safari, Fotos o Pinterest con el botón Compartir; al abrir StealColor aparece como referencia. Necesita un App Group, que se crea a mano una vez:
+
+1. Apple Developer → **Identifiers** → **+** → **App Groups** → Description `StealColor`, ID `group.cat.gadivi.robacolor`.
+2. **Identifiers** → `cat.gadivi.robacolor` → marca **App Groups** → *Configure* → elige `group.cat.gadivi.robacolor` → Save.
+3. **Identifiers** → **+** → **App IDs** → App → Description `StealColor Share`, Bundle ID *Explicit* `cat.gadivi.robacolor.share` → marca **App Groups** con el mismo grupo → Register.
+4. **Profiles** → crea uno *App Store* para `cat.gadivi.robacolor.share` y **vuelve a generar** el de `cat.gadivi.robacolor` (al añadir el App Group el anterior deja de valer).
+5. Codemagic → Team settings → Code signing identities → **Fetch profiles** y marca los dos.
+6. En `codemagic.yaml`, `SHARE_EXTENSION: "1"`.
+
 ## Web pública (stealcolorphoto.com)
 
 La portada, la política de privacidad y la app en el navegador (`/app/`) se publican solas en Cloudflare Pages con cada cambio en `site/` o `web/` (GitHub → **Actions** → *Publica la web*). Para montarla en local: `node scripts/build-site.mjs` → carpeta `dist-web/`.

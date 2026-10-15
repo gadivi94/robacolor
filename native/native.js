@@ -83,5 +83,25 @@
     return FS.writeFile({ path: LOOKS.path, directory: LOOKS.directory, encoding: LOOKS.encoding, data: texto }).catch(function () {});
   }
 
-  window.RobacolorNative = { savePhoto: savePhoto, saveVideo: saveVideo, shareText: shareText, readLooks: readLooks, storeLooks: storeLooks };
+  /* 4. Capa nativa propia (plugin RobacolorRaw): originales, revelado y exportación con Core Image y AVFoundation.
+        Aquí solo se convierten las rutas de archivo en direcciones que la web puede leer. */
+  var R = plugin("RobacolorRaw");
+  function dir(ruta) { return ruta ? window.Capacitor.convertFileSrc(ruta) : ruta; }
+  async function pick(opciones) {
+    var r = await R.pick(opciones);
+    return (r.items || []).map(function (it) { it.url = dir(it.preview || it.path); it.fileUrl = dir(it.path); return it; });
+  }
+  function renderPhoto(opciones) { return R.renderPhoto(opciones); }
+  async function renderVideo(opciones, alAvanzar) {
+    var oyente = alAvanzar ? await R.addListener("progress", function (e) { alAvanzar(e.value || 0); }) : null;
+    try { return await R.renderVideo(opciones); } finally { if (oyente) oyente.remove(); }
+  }
+  async function lastScreenshot() { var r = await R.lastScreenshot(); r.url = dir(r.path); return r; }
+  async function takeShared() { var r = await R.takeShared(); if (r && r.path) r.url = dir(r.path); return r || {}; }
+
+  window.RobacolorNative = {
+    savePhoto: savePhoto, saveVideo: saveVideo, shareText: shareText, readLooks: readLooks, storeLooks: storeLooks,
+    pick: R ? pick : null, renderPhoto: R ? renderPhoto : null, renderVideo: R ? renderVideo : null,
+    lastScreenshot: R ? lastScreenshot : null, takeShared: R ? takeShared : null
+  };
 })();
