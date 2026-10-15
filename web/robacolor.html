@@ -124,6 +124,8 @@ button{-webkit-tap-highlight-color:transparent}
 .badge{font-family:var(--font-data);font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:var(--well);color:var(--muted);padding:3px 8px;border-radius:999px}
 .mat > .badge{position:absolute;bottom:calc(var(--pad) + 8px);left:calc(var(--pad) + 8px);z-index:1;background:var(--on-photo-bg);color:var(--on-photo-fg);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .spacer{flex:1}
+.menu{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.menu .btn{background:var(--raised);box-shadow:0 0 0 1px var(--line),0 1px 2px rgba(0,0,0,.12)}
 .label{font-family:var(--font-data);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0}
 .hint{color:var(--muted);font-size:12.5px;margin:0}
 .block{display:flex;flex-direction:column;gap:8px}
@@ -341,6 +343,7 @@ footer p{margin:0;max-width:70ch}
         <div class="panel-head">
           <h2 id="h-ref"><span class="step s1">1</span>Referencia</h2>
           <span class="spacer"></span>
+          <button class="btn" type="button" id="shotBtn" hidden title="Usar la última captura de pantalla">Captura</button>
           <button class="btn" type="button" id="pasteBtn" hidden>Pegar</button>
           <button class="btn" type="button" id="refBtn" data-ic="up" aria-label="Subir una foto de referencia">Subir</button>
           <input class="sr" type="file" id="refFile" accept="image/*" tabindex="-1" aria-hidden="true">
@@ -380,6 +383,10 @@ footer p{margin:0;max-width:70ch}
           <button class="btn" type="button" id="tgtBtn" data-ic="up" aria-label="Subir una foto o un vídeo">Subir</button>
           <button class="btn primary" type="button" id="saveBtn" data-ic="down" aria-label="Guardar el resultado">Guardar</button>
           <input class="sr" type="file" id="tgtFile" accept="image/*,video/*" tabindex="-1" aria-hidden="true">
+        </div>
+        <div class="menu" id="tgtMenu" hidden>
+          <button class="btn" type="button" data-pick="photos">Desde Fotos</button>
+          <button class="btn" type="button" data-pick="files">Desde Archivos</button>
         </div>
         <div class="mat" id="tgtDrop">
           <span class="badge" id="tgtBadge">Ejemplo</span>
@@ -1518,8 +1525,8 @@ document.addEventListener('keydown', e => {
 
 /* ---------- Comparador, subida y arrastre ---------- */
 $('split').addEventListener('input', e => $('frame').style.setProperty('--split', e.target.value + '%'));
-function wire(btn, input, drop, handler) {
-  $(btn).addEventListener('click', () => $(input).click());
+function wire(btn, input, drop, handler, onClick) {
+  $(btn).addEventListener('click', onClick || (() => $(input).click()));
   $(input).addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) handler(f); e.target.value = ''; });
   const d = $(drop);
   d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('over'); });
@@ -1551,7 +1558,8 @@ $('origFile').addEventListener('change', e => {
 });
 wire('refBtn', 'refFile', 'refDrop', f => openFile(f, src => { setRef(src, baseName(f) || 'Look', false); release(src); toast('Look extraído de la referencia'); }));
 const isVideo = f => /^video\//.test(f.type || '') || /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(f.name || '');
-wire('tgtBtn', 'tgtFile', 'tgtDrop', f => { if (isVideo(f)) { S.tgtName = baseName(f); S.tgtFile = null; setVideo(f); } else openFile(f, src => { S.tgtName = baseName(f); S.tgtFile = f; setTarget(src, false); }); });
+wire('tgtBtn', 'tgtFile', 'tgtDrop', f => { S.tgtNative = null; if (isVideo(f)) { S.tgtName = baseName(f); S.tgtFile = null; setVideo(f); } else openFile(f, src => { S.tgtName = baseName(f); S.tgtFile = f; setTarget(src, false); }); },
+  NAT && NAT.pick ? () => { $('tgtMenu').hidden = !$('tgtMenu').hidden; } : null); // en la app: elegir entre Fotos y Archivos
 window.addEventListener('dragover', e => e.preventDefault());
 window.addEventListener('drop', e => e.preventDefault());
 
@@ -1574,8 +1582,13 @@ const slug = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').repla
 const tick = () => new Promise(r => setTimeout(r, 0));
 $('saveBtn').addEventListener('click', async () => {
   const t = S.tgt; if (!S.look || !t) return;
-  if (t.kind === 'video') { exportVideo($('saveBtn')); return; }
+  if (t.kind === 'video' && !(S.tgtNative && S.tgtNative.kind === 'video' && NAT.renderVideo)) { exportVideo($('saveBtn')); return; }
   const btn = $('saveBtn'); btn.disabled = true;
+  if (S.tgtNative && NAT && NAT.renderPhoto) {
+    try { if (cropMode) { cropMode = false; buildTarget(); } await (t.kind === 'video' ? saveNativeVideo(btn) : saveNativePhoto(btn)); }
+    catch (e) { toast('No se pudo guardar: ' + (e && e.message || 'error'), 4000); }
+    btn.textContent = 'Guardar'; btn.disabled = false; return;
+  }
   try {
     if (cropMode) { cropMode = false; buildTarget(); }
     const [W0, H0] = dims(t.src), [w, h] = fitArea(t.w, t.h, COARSE ? 16.7e6 : 40e6), c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -1745,7 +1758,7 @@ async function setVideo(file) {
   const v = VID.el, btn = $('tgtBtn'); btn.disabled = true;
   try {
     v.pause(); if (VID.url) URL.revokeObjectURL(VID.url);
-    VID.url = URL.createObjectURL(file); v.muted = true; v.src = VID.url; v.load();
+    VID.url = typeof file === 'string' ? null : URL.createObjectURL(file); v.muted = true; v.src = VID.url || file; v.load();
     await once(v, 'loadedmetadata');
     try { await v.play(); } catch (e) { /* hay navegadores que no dejan reproducir sin un toque; el primer fotograma llega igual */ }
     v.pause(); v.muted = false;
@@ -1842,6 +1855,58 @@ async function exportVideo(btn) {
   btn.textContent = 'Guardar'; btn.disabled = false;
 }
 
+/* ---------- App de iPhone: originales, revelado y exportación nativos ----------
+   Con el plugin nativo, las fotos y los vídeos se eligen como originales (HEIC, RAW, vídeo sin recomprimir).
+   La web ve una copia reducida para analizar y mostrar; al guardar, el iPhone aplica el look (como tabla 3D)
+   al original a resolución completa y conserva sus metadatos. */
+const NP = NAT && NAT.pick ? NAT : null;
+const f32b64 = f => { const u = new Uint8Array(f.buffer, f.byteOffset, f.byteLength); let t = ''; for (let i = 0; i < u.length; i += 0x8000) t += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(t); };
+const loadImg = url => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error('img')); im.src = url; });
+function fxParams() { return { vignette: V.vig / 100, grain: V.grain / 100, clarity: V.clar / 100 }; }
+async function openNative(source) {
+  const btn = $('tgtBtn'); $('tgtMenu').hidden = true;
+  let items; try { items = await NP.pick({ source, kind: 'any', multiple: false, preview: 2048 }); } catch (e) { if (!/cancel/i.test(String(e && e.message))) toast('No se pudo abrir: ' + (e && e.message || 'error')); return; }
+  const it = items && items[0]; if (!it) return;
+  btn.disabled = true;
+  try {
+    S.tgtName = (it.name || 'foto').slice(0, 40); S.tgtFile = null;
+    if (it.kind === 'video') { S.tgtNative = it; await setVideo(it.fileUrl); return; }
+    const im = await loadImg(it.url); S.tgtNative = it; setTarget(im, false);
+    $('tgtBadge').textContent = it.raw ? 'RAW' : (it.type || '').toUpperCase().slice(0, 5) || 'Foto'; $('tgtBadge').hidden = false;
+    toast((it.raw ? 'RAW' : 'Foto') + ' cargada · ' + it.width + ' × ' + it.height + ' px');
+  } catch (e) { toast('No se pudo abrir esa foto'); } finally { btn.disabled = false; }
+}
+if (NP) $('tgtMenu').addEventListener('click', e => { const how = e.target.dataset && e.target.dataset.pick; if (how) openNative(how); });
+// Guardar la foto con el revelado nativo: tabla 3D del look en Display P3 + efectos + recorte, sobre el original
+async function saveNativePhoto(btn) {
+  const t = S.tgt, it = S.tgtNative;
+  btn.textContent = 'Revelando…';
+  const lut = lut3d(t.stats, S.look, 64, 'p3');
+  const r = await NAT.renderPhoto(Object.assign({ path: it.path, raw: !!it.raw, lut: f32b64(lut), n: 64, space: 'p3', angle: CROP.angle, crop: { x: CROP.x, y: CROP.y, w: CROP.w, h: CROP.h }, format: 'heic', quality: 0.92, name: slug(S.tgtName || 'foto') + '-' + slug(S.look.name) }, fxParams()));
+  toast(r && r.saved ? 'Guardada en Fotos · ' + r.width + ' × ' + r.height + ' px' : 'No se pudo guardar la foto', 3500);
+}
+async function saveNativeVideo(btn) {
+  const t = S.tgt, it = S.tgtNative, sz = VID.sizes[VID.size] || VID.view;
+  const lut = lut3d(t.stats, S.look, 64, 'srgb');
+  btn.textContent = 'Guardando 0 %';
+  const r = await NAT.renderVideo(Object.assign({ path: it.path, lut: f32b64(lut), n: 64, start: VID.in, end: VID.out, maxSide: Math.max(sz[0], sz[1]) }, fxParams()), p => { btn.textContent = 'Guardando ' + Math.round(p * 100) + ' %'; });
+  toast(r && r.saved ? 'Vídeo guardado en Fotos · ' + r.width + ' × ' + r.height + ' px' : 'No se pudo guardar el vídeo', 3500);
+}
+// Última captura de pantalla como referencia (para robar el color de lo que se ve en otra app)
+if (NAT && NAT.lastScreenshot) {
+  $('shotBtn').hidden = false;
+  $('shotBtn').addEventListener('click', async () => {
+    try { const r = await NAT.lastScreenshot(), im = await loadImg(r.url); setRef(im, 'Captura', false); toast('Look extraído de tu última captura'); }
+    catch (e) { toast(/denied/i.test(String(e && e.message)) ? 'Permite el acceso a Fotos para usar tus capturas' : 'No hay capturas de pantalla', 3500); }
+  });
+}
+// Imagen enviada desde otra app con «Compartir → StealColor»
+async function takeShared() {
+  if (!NAT || !NAT.takeShared) return;
+  try { const r = await NAT.takeShared(); if (r && r.url) { const im = await loadImg(r.url); setRef(im, 'Compartida', false); toast('Referencia recibida'); } } catch (e) { /* nada compartido */ }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') takeShared(); });
+
 /* ---------- Aplicar el look a varias fotos ----------
    Cada foto se analiza por separado (el look se adapta a ella), se revela a tamaño completo con los ajustes actuales
    y se guarda: en la app, en Fotos; en el ordenador, en un .zip; en el móvil, con la hoja de compartir. */
@@ -1874,7 +1939,25 @@ function zipMany(entries) {
   de.setUint32(0, 0x06054b50, true); de.setUint16(8, entries.length, true); de.setUint16(10, entries.length, true); de.setUint32(12, csize, true); de.setUint32(16, off, true);
   return new Blob([...parts, ...central, end], { type: 'application/zip' });
 }
-$('batchBtn').addEventListener('click', () => { if (BATCH.on) { BATCH.stop = true; return; } if (S.look) $('batchFile').click(); });
+$('batchBtn').addEventListener('click', () => { if (BATCH.on) { BATCH.stop = true; return; } if (!S.look) return; if (NP && NAT.renderPhoto) batchNative(); else $('batchFile').click(); });
+// En el iPhone: originales a resolución completa, en HEIC y con sus metadatos
+async function batchNative() {
+  let items; try { items = await NP.pick({ source: 'photos', kind: 'image', multiple: true, preview: 1024 }); } catch (e) { return; }
+  if (!items || !items.length) return;
+  const btn = $('batchBtn'); let saved = 0, failed = 0; BATCH.on = true; BATCH.stop = false;
+  for (let i = 0; i < items.length && !BATCH.stop; i++) {
+    btn.textContent = 'Foto ' + (i + 1) + ' de ' + items.length + ' · Detener';
+    try {
+      const it = items[i], im = await loadImg(it.url), [W, H] = dims(im), [pw, ph] = fit(W, H, 640), [, px] = canvasOf(im, pw, ph);
+      const lut = lut3d(analyze(toLab(px.getImageData(0, 0, pw, ph).data, SPACE)), S.look, 64, 'p3');
+      const r = await NAT.renderPhoto(Object.assign({ path: it.path, raw: !!it.raw, lut: f32b64(lut), n: 64, space: 'p3', angle: 0, crop: { x: 0, y: 0, w: 1, h: 1 }, format: 'heic', quality: 0.92, name: slug(it.name || 'foto') + '-' + slug(S.look.name) }, fxParams()));
+      if (r && r.saved) saved++; else failed++;
+    } catch (e) { failed++; }
+    await tick();
+  }
+  BATCH.on = false; btn.textContent = 'Aplicar a varias fotos';
+  toast(saved + ' foto' + (saved === 1 ? '' : 's') + ' guardada' + (saved === 1 ? '' : 's') + ' en Fotos' + (failed ? ' · ' + failed + ' con error' : ''), 4000);
+}
 $('batchFile').addEventListener('change', async e => {
   const files = [...(e.target.files || [])].filter(f => !f.type || f.type.startsWith('image/')); e.target.value = '';
   if (!files.length || !S.look) return;
@@ -2008,5 +2091,6 @@ drawCurve(); resetWheels();
 setTarget(sceneDay(1200, 800), true);
 setRef(sceneDusk(1200, 800), 'Atardecer', true);
 histCommit(); histUI();
+takeShared();
 })();
 </script>
