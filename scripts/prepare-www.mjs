@@ -19,12 +19,10 @@ mkdirSync("www/fonts", { recursive: true });
 mkdirSync("www/native", { recursive: true });
 cpSync("native/native.js", "www/native/native.js");
 
-// Fuentes: mismas familias que en la web, copiadas de los paquetes @fontsource
+// Fuentes: Geist y Geist Mono, las mismas que en la web, copiadas de los paquetes @fontsource
 const FUENTES = [
-  { familia: "Bricolage Grotesque", peso: "200 800", archivo: "node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-opsz-normal.woff2", formato: "woff2-variations" },
-  { familia: "Instrument Sans", peso: "400 700", archivo: "node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2", formato: "woff2-variations" },
-  { familia: "DM Mono", peso: "400", archivo: "node_modules/@fontsource/dm-mono/files/dm-mono-latin-400-normal.woff2", formato: "woff2" },
-  { familia: "DM Mono", peso: "500", archivo: "node_modules/@fontsource/dm-mono/files/dm-mono-latin-500-normal.woff2", formato: "woff2" },
+  { familia: "Geist", peso: "100 900", archivo: "node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2", formato: "woff2-variations" },
+  { familia: "Geist Mono", peso: "100 900", archivo: "node_modules/@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2", formato: "woff2-variations" },
 ];
 let css = "", copiadas = 0;
 for (const f of FUENTES) {
