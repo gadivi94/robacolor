@@ -30,7 +30,7 @@ jobs:
 
       - name: Monta la web (dist-web/)
         run: |
-          npm install --no-save --no-audit --no-fund @fontsource-variable/bricolage-grotesque@5 @fontsource-variable/instrument-sans@5 @fontsource/dm-mono@5
+          npm install --no-save --no-audit --no-fund @fontsource-variable/geist@5 @fontsource-variable/geist-mono@5
           node scripts/build-site.mjs
 
       - name: Comprueba la llave de Cloudflare y crea el proyecto si no existe
